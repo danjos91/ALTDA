@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
-	"time"
 
 	openai "github.com/sashabaranov/go-openai"
 
@@ -37,12 +36,13 @@ type Client interface {
 
 // Options configures the LLM client.
 type Options struct {
-	Stub       bool
-	BaseURL    string
-	APIKey     string
-	Model      string
-	Fixtures   string
-	SchemaPath string
+	Stub               bool
+	BaseURL            string
+	APIKey             string
+	Model              string
+	Fixtures           string
+	SchemaPath         string
+	ContentConcurrency int // per-module parallel workers for /v1/content (default 4)
 }
 
 // New creates a stub or OpenAI-backed client.
@@ -51,8 +51,9 @@ func New(opts Options) (Client, error) {
 	if fixtures == "" {
 		fixtures = findFixtures()
 	}
+	opts.ContentConcurrency = ensureContentConcurrency(opts.ContentConcurrency)
 	if opts.Stub || strings.TrimSpace(opts.APIKey) == "" {
-		return newStub(fixtures)
+		return newStub(fixtures, opts.ContentConcurrency)
 	}
 	return newOpenAI(opts, fixtures)
 }
@@ -75,13 +76,14 @@ func findFixtures() string {
 // --- stub -------------------------------------------------------------------
 
 type stubClient struct {
-	skeleton program.Object
-	dpp      program.Object
-	full     program.Object
+	skeleton    program.Object
+	dpp         program.Object
+	full        program.Object
+	concurrency int
 }
 
-func newStub(dir string) (*stubClient, error) {
-	s := &stubClient{}
+func newStub(dir string, concurrency int) (*stubClient, error) {
+	s := &stubClient{concurrency: ensureContentConcurrency(concurrency)}
 	var err error
 	if s.skeleton, err = loadJSON(filepath.Join(dir, "example_skeleton_response.json")); err != nil {
 		return nil, err
@@ -215,7 +217,7 @@ func (s *stubClient) RegenerateSkeleton(_ context.Context, prog program.Object, 
 	return updated, nil, changed, nil
 }
 
-func (s *stubClient) GenerateContent(_ context.Context, prog program.Object, nodeIDs []string) (program.Object, []validate.Issue, error) {
+func (s *stubClient) GenerateContent(ctx context.Context, prog program.Object, nodeIDs []string) (program.Object, []validate.Issue, error) {
 	content := program.CloneObject(s.full)
 	content["schemaVersion"] = "1.1"
 	content["id"] = program.GetString(prog, "id", program.GetString(content, "id", ""))
@@ -243,18 +245,8 @@ func (s *stubClient) GenerateContent(_ context.Context, prog program.Object, nod
 		content["competencies"] = program.Clone(comps)
 	}
 
-	skipped := program.Array{}
-	target := map[string]bool{}
-	if nodeIDs != nil {
-		target = program.CollectDependents(prog, nodeIDs)
-		locked := program.CollectLockedIDs(prog)
-		for id := range target {
-			if locked[id] {
-				skipped = append(skipped, id)
-				delete(target, id)
-			}
-		}
-	}
+	target, skipped := contentTargets(prog, nodeIDs)
+	locked := program.CollectLockedIDs(prog)
 
 	cur := program.Nested(prog, "curriculum")
 	if cur != nil && program.GetFloat(program.EnsureObject(cur, "totals"), "total", 0) > 0 {
@@ -291,6 +283,17 @@ func (s *stubClient) GenerateContent(_ context.Context, prog program.Object, nod
 		}
 	}
 
+	// Per-module content in parallel (bounded); order restored after Wait.
+	err := fillModulesParallel(ctx, content, s.concurrency, func(ctx context.Context, mod program.Object, _ int) (program.Object, error) {
+		if err := ctx.Err(); err != nil {
+			return nil, fmt.Errorf("%w: %v", ErrTimeout, err)
+		}
+		return stubFillModule(mod, target, locked), nil
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+
 	gen := program.Object{
 		"steps": program.Array{
 			program.Object{"step": "parse", "model": "stub", "promptTokens": 1200, "completionTokens": 400, "durationMs": 320},
@@ -299,6 +302,7 @@ func (s *stubClient) GenerateContent(_ context.Context, prog program.Object, nod
 		},
 		"embeddingTokens": 0,
 		"costRub":         12.4,
+		"contentConcurrency": s.concurrency,
 	}
 	if len(skipped) > 0 {
 		gen["skippedLockedNodeIds"] = skipped
@@ -327,14 +331,15 @@ func lockedRespecting(prog program.Object, respect bool) map[string]bool {
 // --- openai -----------------------------------------------------------------
 
 type openAIClient struct {
-	api      *openai.Client
-	model    string
-	stub     *stubClient
-	schema   string
+	api         *openai.Client
+	model       string
+	stub        *stubClient
+	schema      string
+	concurrency int
 }
 
 func newOpenAI(opts Options, fixtures string) (*openAIClient, error) {
-	stub, err := newStub(fixtures)
+	stub, err := newStub(fixtures, opts.ContentConcurrency)
 	if err != nil {
 		return nil, err
 	}
@@ -343,10 +348,11 @@ func newOpenAI(opts Options, fixtures string) (*openAIClient, error) {
 		cfg.BaseURL = strings.TrimRight(opts.BaseURL, "/")
 	}
 	return &openAIClient{
-		api:    openai.NewClientWithConfig(cfg),
-		model:  opts.Model,
-		stub:   stub,
-		schema: opts.SchemaPath,
+		api:         openai.NewClientWithConfig(cfg),
+		model:       opts.Model,
+		stub:        stub,
+		schema:      opts.SchemaPath,
+		concurrency: ensureContentConcurrency(opts.ContentConcurrency),
 	}, nil
 }
 
@@ -446,17 +452,50 @@ func (c *openAIClient) RegenerateSkeleton(ctx context.Context, prog program.Obje
 }
 
 func (c *openAIClient) GenerateContent(ctx context.Context, prog program.Object, nodeIDs []string) (program.Object, []validate.Issue, error) {
-	// Content generation is large; start from stub fixture merged with program, optionally ask LLM for activities.
-	content, issues, err := c.stub.GenerateContent(ctx, prog, nodeIDs)
+	// Shell + hours from stub merge; per-module activities via LLM (parallel, bounded).
+	content, _, err := c.stub.GenerateContent(ctx, prog, nodeIDs)
 	if err != nil {
 		return nil, nil, err
 	}
-	select {
-	case <-ctx.Done():
-		return nil, nil, fmt.Errorf("%w: %v", ErrTimeout, ctx.Err())
-	default:
+	target, skipped := contentTargets(prog, nodeIDs)
+	locked := program.CollectLockedIDs(prog)
+
+	err = fillModulesParallel(ctx, content, c.concurrency, func(ctx context.Context, mod program.Object, modIndex int) (program.Object, error) {
+		if err := ctx.Err(); err != nil {
+			return nil, fmt.Errorf("%w: %v", ErrTimeout, err)
+		}
+		mid := program.GetString(mod, "id", "")
+		if locked[mid] {
+			return mod, nil
+		}
+		if target != nil && mid != "" && !target[mid] {
+			// Still may have targeted topics inside — fall through to stubFill which filters.
+		}
+		body, _ := json.Marshal(mod)
+		obj, err := c.chatJSON(ctx, contentModuleSystemPrompt,
+			fmt.Sprintf("Модуль #%d (JSON). Заполни activities для тем с ненулевыми hours, не меняя hours.\n%s", modIndex, string(body)))
+		if err != nil {
+			// Deterministic fallback keeps the pipeline demo-ready.
+			return stubFillModule(mod, target, locked), nil
+		}
+		if topics, ok := program.AsArray(obj["topics"]); ok && len(topics) > 0 {
+			mod["topics"] = topics
+			return mod, nil
+		}
+		return stubFillModule(mod, target, locked), nil
+	})
+	if err != nil {
+		return nil, nil, err
 	}
-	_ = time.Now()
+	if gen, ok := program.AsObject(content["generation"]); ok {
+		gen["contentConcurrency"] = c.concurrency
+		gen["model"] = c.model
+		if len(skipped) > 0 {
+			gen["skippedLockedNodeIds"] = skipped
+		}
+	}
+	checks := validate.ValidateProgram(content)
+	_, issues := validate.BuildReport(checks, 0)
 	return content, issues, nil
 }
 
@@ -562,3 +601,7 @@ const parseSystemPrompt = `Ты — методист АЦР. Извлеки па
 
 const skeletonSystemPrompt = `Ты — ведущий методист АЦР. Предложи до 3 вариантов каркаса (A/B/C) с весами, без hours.
 Ответ JSON: {"variants":[{"key":"A","rationale":"...","goal":"...","competencies":[...],"modules":[...],"finalAttestation":{...}}]}`
+
+const contentModuleSystemPrompt = `Ты — эксперт-практик АЦР. Для одного модуля верни JSON с тем же id и topics[],
+у каждой темы с ненулевыми hours — activities[{kind,hours,content,delivery}].
+hours в activities копируй из темы; не меняй структуру модуля. Только JSON.`

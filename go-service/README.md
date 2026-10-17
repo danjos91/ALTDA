@@ -49,7 +49,8 @@ docker compose up --build
 ```
 
 - Go `WriteTimeout` = 12 minutes (covers `/v1/content` Java read timeout of 10 min).
-- Healthcheck: `GET /v1/health` (image includes `wget`; binary also supports `-healthcheck`).
+- Healthcheck: `GET /v1/health` via `/app/altda-go -healthcheck` (no wget in image).
+- `/v1/content` fills modules in parallel (`ALTDA_CONTENT_CONCURRENCY`, default 4); order is deterministic; request cancel stops workers.
 
 ## Tests
 

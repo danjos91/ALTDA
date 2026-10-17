@@ -30,12 +30,13 @@ func main() {
 		fixtures = defaultFixtures()
 	}
 	client, err := llm.New(llm.Options{
-		Stub:       cfg.StubMode,
-		BaseURL:    cfg.OpenAIBaseURL,
-		APIKey:     cfg.OpenAIAPIKey,
-		Model:      cfg.OpenAIModel,
-		Fixtures:   fixtures,
-		SchemaPath: cfg.SchemaPath,
+		Stub:               cfg.StubMode,
+		BaseURL:            cfg.OpenAIBaseURL,
+		APIKey:             cfg.OpenAIAPIKey,
+		Model:              cfg.OpenAIModel,
+		Fixtures:           fixtures,
+		SchemaPath:         cfg.SchemaPath,
+		ContentConcurrency: cfg.ContentConcurrency,
 	})
 	if err != nil {
 		log.Fatalf("llm client: %v", err)

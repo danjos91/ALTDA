@@ -7,6 +7,8 @@ RUN apt-get update && apt-get install -y -qq maven \
     && rm -rf /var/lib/apt/lists/*
 
 FROM eclipse-temurin:21-jre-jammy
+RUN apt-get update && apt-get install -y -qq curl \
+    && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=build /app/target/java-service-*.jar /app/app.jar
 EXPOSE 8000
