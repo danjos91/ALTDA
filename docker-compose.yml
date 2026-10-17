@@ -1,0 +1,43 @@
+# Root compose: Java orchestrator (:8000) + Go skills engine (internal :8081).
+# Copy .env.example → .env for OPENAI_*; empty key starts Go in stub mode.
+services:
+  go-service:
+    build:
+      context: ./go-service
+    restart: unless-stopped
+    environment:
+      PORT: "8081"
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-https://api.openai.com/v1}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
+      ALTDA_STUB: ${ALTDA_STUB:-}
+      ALTDA_CONTENT_CONCURRENCY: ${ALTDA_CONTENT_CONCURRENCY:-4}
+    # Go is internal; publish 8081 only for local debugging.
+    ports:
+      - "8081:8081"
+    healthcheck:
+      test: ["CMD", "/app/altda-go", "-healthcheck", "-addr=:8081"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+
+  java-service:
+    build:
+      context: ./java-service
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      # Maps to altda.go.client / altda.go.base-url in application.yml
+      ALTDA_GO_CLIENT: http
+      ALTDA_GO_BASE_URL: http://go-service:8081
+    depends_on:
+      go-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8000/health | grep -q ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 40s

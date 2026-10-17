@@ -15,7 +15,9 @@ else
   exit 1
 fi
 
-echo "Starting ALTDA java-service on :$PORT (altda.go.client=${ALTDA_GO_CLIENT:-mock})"
+GO_CLIENT="${ALTDA_GO_CLIENT:-mock}"
+GO_BASE="${ALTDA_GO_BASE_URL:-http://localhost:8081}"
+echo "Starting ALTDA java-service on :$PORT (altda.go.client=${GO_CLIENT} base-url=${GO_BASE})"
 exec $MVN -q spring-boot:run \
   -Dspring-boot.run.jvmArguments="-Dserver.port=${PORT}" \
-  -Dspring-boot.run.arguments="--altda.go.client=${ALTDA_GO_CLIENT:-mock}"
+  -Dspring-boot.run.arguments="--altda.go.client=${GO_CLIENT} --altda.go.base-url=${GO_BASE}"

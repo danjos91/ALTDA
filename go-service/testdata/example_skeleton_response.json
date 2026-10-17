@@ -1,0 +1,64 @@
+{
+  "variants": [
+    {
+      "key": "A",
+      "rationale": "Линейно по предмету: от основ конкурентности к проектированию API.",
+      "pros": ["Понятная логика для слушателей с опытом на другом языке"],
+      "cons": ["Проект появляется только в конце"],
+      "goal": "Сформировать у разработчиков умение проектировать и реализовывать простые сервисы на языке Go",
+      "competencies": [
+        {
+          "id": "C1",
+          "title": "Разработка сервисов на Go",
+          "kind": "новая",
+          "activityType": null,
+          "profStandardLinks": [{ "registryRef": "ps.06.001", "laborFunctionCode": "A/01.3" }],
+          "knowledge": [{ "id": "C1.K1", "text": "Модель конкурентности Go: горутины и каналы" }],
+          "skills": [{ "id": "C1.U1", "text": "Проектировать и реализовывать HTTP API на Go" }],
+          "abilities": []
+        }
+      ],
+      "modules": [
+        {
+          "id": "M1",
+          "title": "Основы Go для сервисов",
+          "isIntro": false,
+          "weight": 0.5,
+          "topics": [
+            {
+              "id": "T1.1",
+              "title": "Горутины и каналы",
+              "weight": 1,
+              "kinds": ["lecture", "practice"],
+              "practiceShareHint": 0.65,
+              "outcomeIds": ["C1.K1"],
+              "prerequisites": []
+            }
+          ]
+        },
+        {
+          "id": "M2",
+          "title": "HTTP API",
+          "isIntro": false,
+          "weight": 0.5,
+          "topics": [
+            {
+              "id": "T2.1",
+              "title": "Проектирование HTTP API",
+              "weight": 1,
+              "kinds": ["lecture", "practice"],
+              "practiceShareHint": 0.75,
+              "outcomeIds": ["C1.U1"],
+              "prerequisites": ["T1.1"]
+            }
+          ]
+        }
+      ],
+      "finalAttestation": {
+        "form": "защита проекта",
+        "description": "Защита учебного сервиса на Go",
+        "outcomeIds": ["C1.K1", "C1.U1"]
+      }
+    }
+  ]
+}

@@ -1,0 +1,145 @@
+{
+  "schemaVersion": "1.1",
+  "id": "7b1e2c9a-0000-4000-8000-000000000d16",
+  "status": "skeleton_approved",
+  "programType": "DPP_PK",
+  "request": {
+    "rawText": "Нужна ДПП повышения квалификации «Основы Go для сервисов» для backend-разработчиков, 16 часов, практики не меньше 60%. Итог — защита проекта.",
+    "attachments": [],
+    "params": {
+      "programType": "DPP_PK",
+      "title": "Основы Go для сервисов",
+      "domain": "Backend-разработка",
+      "totalHours": 16,
+      "audience": "Backend-разработчики",
+      "entryLevel": "Опыт разработки на другом языке",
+      "studyForm": "очная",
+      "distanceTech": false,
+      "durationWeeks": 2,
+      "sessionHours": 4,
+      "sessionsPerWeek": 2,
+      "minPracticeShare": 0.6,
+      "finalAttestationForm": "защита проекта",
+      "isInternship": false,
+      "deliverablesRequested": [],
+      "constraints": []
+    },
+    "missing": [],
+    "clarifications": [
+      {
+        "param": "entryLevel",
+        "question": "Есть ли у слушателей опыт разработки на другом языке?",
+        "answer": "Да, пишут backend на другом языке"
+      }
+    ],
+    "gapsReport": []
+  },
+  "header": {
+    "title": "Основы Go для сервисов",
+    "itDirection": "Backend-разработка",
+    "totalHours": 16,
+    "studyForm": "очная",
+    "distanceLearning": false,
+    "durationText": "2 недели",
+    "audience": {
+      "description": "Backend-разработчики",
+      "entryLevel": "Опыт разработки на другом языке",
+      "entryRequirements": "Среднее профессиональное или высшее образование"
+    },
+    "issuedDocument": "Удостоверение о повышении квалификации",
+    "approval": { "orderNumber": null, "orderDate": null, "approvedBy": null },
+    "authors": [
+      { "role": "Методист", "fullName": null },
+      { "role": "Эксперт-практик", "fullName": null }
+    ]
+  },
+  "dpp": {
+    "profStandards": [
+      {
+        "registryRef": "ps.06.001",
+        "standardCode": "06.001",
+        "standardTitle": "Программист",
+        "approvalOrder": null,
+        "laborFunctions": [
+          { "code": "A/01.3", "title": "EXAMPLE ONLY: take the real title from the verified registry" }
+        ],
+        "verified": false
+      }
+    ]
+  },
+  "goal": {
+    "text": "Сформировать у разработчиков умение проектировать и реализовывать простые сервисы на языке Go",
+    "tasks": [
+      "Освоить модель конкурентности Go",
+      "Научиться проектировать HTTP API"
+    ]
+  },
+  "competencies": [
+    {
+      "id": "C1",
+      "title": "Разработка сервисов на Go",
+      "kind": "новая",
+      "activityType": null,
+      "profStandardLinks": [
+        {
+          "registryRef": "ps.06.001",
+          "laborFunctionCode": "A/01.3",
+          "standardCode": "06.001",
+          "laborFunctionTitle": "EXAMPLE ONLY: take the real title from the verified registry",
+          "verified": false
+        }
+      ],
+      "knowledge": [
+        { "id": "C1.K1", "text": "Модель конкурентности Go: горутины и каналы" }
+      ],
+      "skills": [
+        { "id": "C1.U1", "text": "Проектировать и реализовывать HTTP API на Go" }
+      ],
+      "abilities": []
+    }
+  ],
+  "curriculum": {
+    "modules": [
+      {
+        "id": "M1",
+        "title": "Основы Go для сервисов",
+        "weight": 0.5,
+        "assessmentForm": "нет",
+        "hours": { "lecture": 2, "practice": 4, "lab": 0, "selfStudy": 0, "assessment": 0, "contact": 6, "total": 6 },
+        "topics": [
+          {
+            "id": "T1.1",
+            "title": "Горутины и каналы",
+            "weight": 1,
+            "hours": { "lecture": 2, "practice": 4, "lab": 0, "selfStudy": 0, "assessment": 0, "contact": 6, "total": 6 },
+            "outcomeIds": ["C1.K1"]
+          }
+        ]
+      },
+      {
+        "id": "M2",
+        "title": "HTTP API",
+        "weight": 0.5,
+        "assessmentForm": "нет",
+        "hours": { "lecture": 1.5, "practice": 6, "lab": 0, "selfStudy": 0, "assessment": 0, "contact": 7.5, "total": 7.5 },
+        "topics": [
+          {
+            "id": "T2.1",
+            "title": "Проектирование HTTP API",
+            "weight": 1,
+            "prerequisites": ["T1.1"],
+            "hours": { "lecture": 1.5, "practice": 6, "lab": 0, "selfStudy": 0, "assessment": 0, "contact": 7.5, "total": 7.5 },
+            "outcomeIds": ["C1.U1"]
+          }
+        ]
+      }
+    ],
+    "totals": { "lecture": 3.5, "practice": 10, "lab": 0, "selfStudy": 0, "assessment": 2.5, "contact": 13.5, "total": 16 }
+  },
+  "finalAttestation": {
+    "form": "защита проекта",
+    "description": "Защита учебного сервиса на Go",
+    "hours": { "lecture": 0, "practice": 0, "lab": 0, "selfStudy": 0, "assessment": 2.5, "contact": 0, "total": 2.5 },
+    "outcomeIds": ["C1.K1", "C1.U1"]
+  }
+}

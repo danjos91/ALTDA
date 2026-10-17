@@ -1,0 +1,477 @@
+{
+  "schemaVersion": "1.1",
+  "id": "7b1e2c9a-0000-4000-8000-000000000016",
+  "status": "validated",
+  "programType": "DOOP_GENERAL",
+  "request": {
+    "rawText": "Интенсив на 16 часов по использованию генеративного ИИ для учителей, очно, итог — защита мини-проекта",
+    "attachments": [
+      {
+        "id": "REF-1",
+        "name": "Программа прошлого года.docx",
+        "format": "docx",
+        "role": "reference program",
+        "extractedTextPath": "refs/REF-1.txt",
+        "chunkCount": 42
+      }
+    ],
+    "params": {
+      "programType": "DOOP_GENERAL",
+      "title": "Интенсив «Генеративный ИИ в работе учителя»",
+      "domain": "Искусственный интеллект",
+      "totalHours": 16,
+      "audience": "Учителя общеобразовательных школ",
+      "entryLevel": "Начальный, опыт работы с ИИ не требуется",
+      "studyForm": "очная",
+      "distanceTech": false,
+      "durationWeeks": 1,
+      "sessionHours": 4,
+      "sessionsPerWeek": 4,
+      "minPracticeShare": 0.5,
+      "finalAttestationForm": "защита проекта",
+      "isInternship": false,
+      "deliverablesRequested": [],
+      "constraints": []
+    },
+    "missing": [],
+    "clarifications": [
+      {
+        "param": "entryLevel",
+        "question": "Есть ли у слушателей опыт работы с чат-ботами на основе ИИ?",
+        "answer": "Нет, начальный уровень"
+      }
+    ],
+    "gapsReport": []
+  },
+  "header": {
+    "title": "Интенсив «Генеративный ИИ в работе учителя»",
+    "itDirection": "Искусственный интеллект",
+    "totalHours": 16,
+    "studyForm": "очная",
+    "distanceLearning": false,
+    "durationText": "2 дня",
+    "audience": {
+      "description": "Учителя общеобразовательных школ",
+      "entryLevel": "Начальный, опыт работы с ИИ не требуется"
+    },
+    "issuedDocument": "Сертификат об обучении",
+    "approval": {
+      "orderNumber": null,
+      "orderDate": null,
+      "approvedBy": null
+    },
+    "authors": [
+      { "role": "Методист", "fullName": null },
+      { "role": "Эксперт-практик", "fullName": null }
+    ]
+  },
+  "doop": {
+    "focus": "техническая"
+  },
+  "normativeBasis": ["SRC-1", "SRC-2"],
+  "goal": {
+    "text": "Сформировать у учителей умение безопасно и результативно применять генеративный ИИ при подготовке учебных материалов",
+    "tasks": [
+      "Познакомить с принципами работы языковых моделей",
+      "Отработать приёмы составления запросов",
+      "Научить проверять ответы ИИ"
+    ]
+  },
+  "competencies": [
+    {
+      "id": "C1",
+      "title": "Использование генеративных ИИ-моделей для подготовки учебных материалов",
+      "activityType": null,
+      "profStandardLinks": [],
+      "knowledge": [
+        { "id": "C1.K1", "text": "Принципы работы больших языковых моделей и их ограничения" }
+      ],
+      "skills": [
+        { "id": "C1.U1", "text": "Составлять запросы для получения учебных заданий заданного уровня" }
+      ],
+      "abilities": [
+        { "id": "C1.N1", "text": "Приёмами итеративного улучшения ответа модели" }
+      ]
+    },
+    {
+      "id": "C2",
+      "title": "Критическая оценка результатов работы ИИ",
+      "activityType": null,
+      "profStandardLinks": [],
+      "knowledge": [
+        { "id": "C2.K1", "text": "Типичные ошибки ИИ: галлюцинации, устаревшие сведения" }
+      ],
+      "skills": [
+        { "id": "C2.U1", "text": "Проверять фактическую точность материалов, созданных ИИ" }
+      ],
+      "abilities": []
+    }
+  ],
+  "curriculum": {
+    "modules": [
+      {
+        "id": "M1",
+        "title": "Основы работы с генеративным ИИ",
+        "isIntro": false,
+        "weight": 0.5,
+        "annotation": "Модуль знакомит с принципами работы языковых моделей и базовыми приёмами составления запросов.",
+        "assessmentForm": "тестирование",
+        "hours": { "lecture": 3, "practice": 4, "lab": 0, "selfStudy": 1, "assessment": 0, "contact": 7, "total": 8 },
+        "topics": [
+          {
+            "id": "T1.1",
+            "title": "Как устроены языковые модели",
+            "weight": 0.4,
+            "hours": { "lecture": 2, "practice": 1.5, "lab": 0, "selfStudy": 0, "assessment": 0, "contact": 3.5, "total": 3.5 },
+            "outcomeIds": ["C1.K1", "C2.K1"],
+            "activities": [
+              {
+                "kind": "lecture",
+                "hours": 2,
+                "content": "Токены, контекст, вероятностная природа ответа, ограничения моделей.",
+                "delivery": "onsite"
+              },
+              {
+                "kind": "practice",
+                "hours": 1.5,
+                "content": "Эксперимент: один и тот же запрос с разными формулировками, сравнение ответов.",
+                "delivery": "onsite"
+              }
+            ]
+          },
+          {
+            "id": "T1.2",
+            "title": "Составление запросов",
+            "weight": 0.6,
+            "prerequisites": ["T1.1"],
+            "hours": { "lecture": 1, "practice": 2.5, "lab": 0, "selfStudy": 1, "assessment": 0, "contact": 3.5, "total": 4.5 },
+            "outcomeIds": ["C1.U1", "C1.N1"],
+            "activities": [
+              {
+                "kind": "lecture",
+                "hours": 1,
+                "content": "Роль, контекст, формат ответа, примеры; итеративное уточнение.",
+                "delivery": "onsite"
+              },
+              {
+                "kind": "practice",
+                "hours": 2.5,
+                "content": "Практикум: составление и улучшение запросов для упражнения по своему предмету.",
+                "delivery": "onsite"
+              },
+              {
+                "kind": "selfStudy",
+                "hours": 1,
+                "content": "Доработка трёх запросов дома, подготовка сравнения результатов.",
+                "delivery": "distance_async"
+              }
+            ],
+            "referenceIds": ["REF-1"]
+          }
+        ]
+      },
+      {
+        "id": "M2",
+        "title": "ИИ в учебном процессе",
+        "isIntro": false,
+        "weight": 0.5,
+        "assessmentForm": "нет",
+        "hours": { "lecture": 2, "practice": 5, "lab": 0, "selfStudy": 0, "assessment": 0, "contact": 7, "total": 7 },
+        "topics": [
+          {
+            "id": "T2.1",
+            "title": "Создание заданий и тестов с помощью ИИ",
+            "weight": 0.6,
+            "prerequisites": ["T1.2"],
+            "hours": { "lecture": 1, "practice": 3, "lab": 0, "selfStudy": 0, "assessment": 0, "contact": 4, "total": 4 },
+            "outcomeIds": ["C1.U1", "C1.N1"],
+            "activities": [
+              {
+                "kind": "lecture",
+                "hours": 1,
+                "content": "Типы учебных заданий, которые удобно генерировать; требования к проверке.",
+                "delivery": "onsite"
+              },
+              {
+                "kind": "practice",
+                "hours": 3,
+                "content": "Создание комплекта заданий к одному уроку и их доработка.",
+                "delivery": "onsite"
+              }
+            ],
+            "doubts": ["Версия GigaChat на момент проведения занятий требует уточнения"]
+          },
+          {
+            "id": "T2.2",
+            "title": "Проверка ответов ИИ и этика",
+            "weight": 0.4,
+            "prerequisites": ["T1.1"],
+            "hours": { "lecture": 1, "practice": 2, "lab": 0, "selfStudy": 0, "assessment": 0, "contact": 3, "total": 3 },
+            "outcomeIds": ["C2.K1", "C2.U1"],
+            "activities": [
+              {
+                "kind": "lecture",
+                "hours": 1,
+                "content": "Галлюцинации, устаревшие сведения, персональные данные и авторские права.",
+                "delivery": "onsite"
+              },
+              {
+                "kind": "practice",
+                "hours": 2,
+                "content": "Поиск и исправление фактических ошибок в ответах модели.",
+                "delivery": "onsite"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "totals": { "lecture": 5, "practice": 9, "lab": 0, "selfStudy": 1, "assessment": 1, "contact": 14, "total": 16 }
+  },
+  "finalAttestation": {
+    "form": "защита проекта",
+    "description": "Защита комплекта учебных материалов к одному уроку, подготовленного с помощью ИИ",
+    "hours": { "lecture": 0, "practice": 0, "lab": 0, "selfStudy": 0, "assessment": 1, "contact": 0, "total": 1 },
+    "outcomeIds": ["C1.U1", "C1.N1", "C2.U1"],
+    "criteria": [
+      {
+        "text": "Запросы к модели сформулированы корректно и воспроизводимы",
+        "maxPoints": 3
+      },
+      {
+        "text": "Фактические ошибки ИИ выявлены и исправлены",
+        "maxPoints": 3
+      }
+    ]
+  },
+  "calendar": {
+    "sessions": [
+      { "number": 1, "week": 1, "hours": 4, "topicIds": ["T1.1", "T1.2"] },
+      { "number": 2, "week": 1, "hours": 4, "topicIds": ["T1.2", "T2.1"] },
+      { "number": 3, "week": 1, "hours": 4, "topicIds": ["T2.1", "T2.2"] },
+      { "number": 4, "week": 1, "hours": 3, "topicIds": ["T2.2"], "finalAttestation": true }
+    ]
+  },
+  "lectures": [
+    {
+      "id": "L1",
+      "topicId": "T1.1",
+      "sessionNumbers": [1],
+      "title": "Как устроены языковые модели",
+      "goal": "Объяснить, как модель порождает текст и почему ошибается",
+      "plan": [
+        { "step": "Что такое языковая модель", "minutes": 20 },
+        { "step": "Токены и контекстное окно", "minutes": 40 },
+        { "step": "Почему модель ошибается", "minutes": 30 }
+      ],
+      "keyTerms": ["токен", "контекст", "галлюцинация"],
+      "outcomeIds": ["C1.K1", "C2.K1"],
+      "slides": [
+        { "n": 1, "layout": "title", "title": "Как устроены языковые модели", "bullets": [], "code": null, "visualHint": null, "speakerNotes": null },
+        {
+          "n": 2,
+          "layout": "bullets",
+          "title": "Модель предсказывает следующий токен",
+          "bullets": ["Текст делится на токены", "Модель выбирает наиболее вероятное продолжение"],
+          "code": null,
+          "visualHint": "Схема: фраза, разбитая на токены, со стрелкой к следующему токену",
+          "speakerNotes": "Показать пример разбиения фразы на токены."
+        },
+        {
+          "n": 3,
+          "layout": "summary",
+          "title": "Ограничения",
+          "bullets": ["Галлюцинации", "Ограниченный контекст", "Знания на дату обучения"],
+          "code": null,
+          "visualHint": null,
+          "speakerNotes": null
+        }
+      ],
+      "sourceIds": ["SRC-3"]
+    }
+  ],
+  "assessment": {
+    "tests": [
+      {
+        "id": "TEST1",
+        "title": "Текущий контроль по модулю 1",
+        "purpose": "current",
+        "moduleId": "M1",
+        "passThreshold": 0.6,
+        "questions": [
+          {
+            "id": "Q1",
+            "type": "single",
+            "text": "Что языковая модель генерирует на каждом шаге?",
+            "options": [
+              { "id": "a", "text": "Следующий токен" },
+              { "id": "b", "text": "Готовый абзац из базы данных" },
+              { "id": "c", "text": "Ссылку на источник" }
+            ],
+            "correct": ["a"],
+            "explanation": "Модель последовательно предсказывает следующий токен.",
+            "outcomeIds": ["C1.K1"],
+            "topicIds": ["T1.1"],
+            "difficulty": "easy",
+            "points": 1
+          },
+          {
+            "id": "Q2",
+            "type": "truefalse",
+            "text": "Ответ модели всегда фактически точен, если запрос составлен корректно.",
+            "options": [
+              { "id": "t", "text": "Верно" },
+              { "id": "f", "text": "Неверно" }
+            ],
+            "correct": ["f"],
+            "explanation": "Модели могут выдавать правдоподобные, но ложные сведения.",
+            "outcomeIds": ["C2.K1"],
+            "topicIds": ["T1.1"],
+            "difficulty": "easy",
+            "points": 1
+          },
+          {
+            "id": "Q3",
+            "type": "multiple",
+            "text": "Какие из перечисленных ограничений свойственны языковым моделям?",
+            "options": [
+              { "id": "a", "text": "Галлюцинации" },
+              { "id": "b", "text": "Ограниченный объём контекста" },
+              { "id": "c", "text": "Гарантированная актуальность сведений" },
+              { "id": "d", "text": "Невозможность отвечать на русском языке" }
+            ],
+            "correct": ["a", "b"],
+            "explanation": "Галлюцинации и ограниченный контекст — типичные ограничения; сведения ограничены датой обучения.",
+            "outcomeIds": ["C1.K1", "C2.K1"],
+            "topicIds": ["T1.1"],
+            "difficulty": "medium",
+            "points": 2
+          }
+        ]
+      }
+    ],
+    "seminarTasks": [
+      {
+        "id": "ST1",
+        "topicId": "T1.2",
+        "title": "Практикум по составлению запросов",
+        "format": "в парах",
+        "description": "Составить три варианта запроса для получения упражнения по своему предмету и сравнить результаты.",
+        "deliverable": "Три запроса, ответы модели и вывод о лучшем варианте",
+        "durationHours": 2.5,
+        "outcomeIds": ["C1.U1", "C1.N1"],
+        "criteria": [
+          {
+            "text": "Запрос содержит роль, контекст и формат",
+            "maxPoints": 2,
+            "levels": [
+              { "range": "0", "description": "Нет структуры" },
+              { "range": "1", "description": "Есть 1–2 элемента" },
+              { "range": "2", "description": "Все элементы" }
+            ]
+          },
+          {
+            "text": "Обоснован выбор лучшего запроса",
+            "maxPoints": 2
+          }
+        ],
+        "maxScore": 4,
+        "passThreshold": 2
+      },
+      {
+        "id": "ST2",
+        "topicId": "T2.2",
+        "title": "Поиск ошибок в ответах ИИ",
+        "format": "индивидуально",
+        "description": "Получить от модели краткую справку по теме урока, найти в ней не менее трёх фактических неточностей и исправить их по надёжным источникам.",
+        "deliverable": "Справка с отмеченными и исправленными ошибками",
+        "durationHours": 2,
+        "outcomeIds": ["C2.U1"],
+        "criteria": [
+          { "text": "Найдено не менее трёх неточностей", "maxPoints": 3 },
+          { "text": "Каждое исправление подтверждено источником", "maxPoints": 3 }
+        ],
+        "maxScore": 6,
+        "passThreshold": 4
+      }
+    ]
+  },
+  "sources": [
+    {
+      "id": "SRC-1",
+      "category": "normative",
+      "citation": "Об образовании в Российской Федерации : Федеральный закон от 29.12.2012 № 273-ФЗ",
+      "registryId": "norm.273-fz",
+      "verified": true,
+      "verification": { "method": "registry" },
+      "unverifiedMark": null
+    },
+    {
+      "id": "SRC-2",
+      "category": "normative",
+      "citation": "Приказ Минпросвещения России № 629 «Об утверждении Порядка организации и осуществления образовательной деятельности по дополнительным общеобразовательным программам»",
+      "registryId": "norm.minprosv-629",
+      "verified": true,
+      "verification": { "method": "registry" },
+      "unverifiedMark": null
+    },
+    {
+      "id": "SRC-3",
+      "category": "internet",
+      "citation": "Документация GigaChat [Электронный ресурс]",
+      "url": "https://developers.sber.ru/docs/ru/gigachat/overview",
+      "topicIds": ["T1.1"],
+      "verified": false,
+      "verification": { "method": "http", "confidence": "medium", "note": "URL not yet checked" },
+      "unverifiedMark": "[не подтверждено]"
+    }
+  ],
+  "tools": [
+    {
+      "name": "GigaChat",
+      "usedInTopics": ["T1.2", "T2.1"],
+      "status": "current"
+    }
+  ],
+  "templateSections": [
+    { "key": "title_page", "title": "Титульный лист", "status": "placeholder", "jsonPath": "/header/approval" },
+    { "key": "explanatory_note", "title": "Пояснительная записка", "status": "filled", "jsonPath": "/goal" },
+    { "key": "planned_results", "title": "Планируемые результаты", "status": "filled", "jsonPath": "/competencies" },
+    { "key": "curriculum", "title": "Учебный план", "status": "filled", "jsonPath": "/curriculum" },
+    { "key": "assessment_materials", "title": "Оценочные материалы", "status": "filled", "jsonPath": "/assessment" }
+  ],
+  "approvals": [
+    { "stage": "skeleton", "approved": true, "at": "2026-10-20T10:15:00Z" }
+  ],
+  "validationReport": {
+    "generatedAt": "2026-10-20T10:31:00Z",
+    "iterations": 0,
+    "summary": { "errors": 0, "warnings": 1, "passed": 58, "unverifiedSources": 1 },
+    "checks": [
+      {
+        "ruleId": "SOURCE_UNVERIFIED",
+        "category": "sources",
+        "severity": "warning",
+        "passed": false,
+        "message": "Источник SRC-3 не проверен",
+        "path": "/sources/2",
+        "relatedIds": ["SRC-3"]
+      }
+    ]
+  },
+  "generation": {
+    "steps": [
+      {
+        "step": "skeleton",
+        "model": "<Cloud.ru model>",
+        "promptTokens": 3100,
+        "completionTokens": 1900,
+        "durationMs": 41000,
+        "retries": 0
+      }
+    ],
+    "embeddingTokens": 18500,
+    "costRub": 0,
+    "revisions": []
+  }
+}
