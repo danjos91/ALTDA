@@ -27,6 +27,12 @@ type Generator interface {
 	Placeholder() bool
 }
 
+// WarningSource is implemented by generators that soft-fail topics (e.g. LLM
+// fallback to stub) and want those warnings merged into the content response.
+type WarningSource interface {
+	ConsumeWarnings() []validate.Check
+}
+
 type TopicInput struct {
 	ProgramTitle string
 	Domain       string
@@ -73,5 +79,6 @@ type Config struct {
 }
 
 func DefaultConfig() Config {
-	return Config{MaxParallel: 8, SessionHours: 4, SessionsPerWeek: 2}
+	// MaxParallel is capped further at startup by ALTDA_LLM_CONCURRENCY (default 2).
+	return Config{MaxParallel: 2, SessionHours: 4, SessionsPerWeek: 2}
 }

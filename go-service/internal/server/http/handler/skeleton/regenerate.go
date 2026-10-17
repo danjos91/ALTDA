@@ -1,6 +1,7 @@
 package skeleton
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 
@@ -45,7 +46,9 @@ func (h *Handler) Regenerate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respectLocks := req.RespectLocks == nil || *req.RespectLocks
-	result, err := h.skeletonService.Regenerate(r.Context(), req.Program, skeletonservice.RegenerateParams{
+	ctx, cancel := context.WithTimeout(r.Context(), h.deadline)
+	defer cancel()
+	result, err := h.skeletonService.Regenerate(ctx, req.Program, skeletonservice.RegenerateParams{
 		Comment:      req.Comment,
 		NodeIDs:      req.NodeIDs,
 		RespectLocks: respectLocks,

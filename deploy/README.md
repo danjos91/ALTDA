@@ -20,7 +20,16 @@ docker compose down
 
 The UI is at <http://localhost:8000/>. The first build is slow: Java compiles with Maven inside the image.
 
-Settings can go in `deploy/.env` (see `.env.example`). Go reads its own from `go-service/.env`.
+Settings go in the shell environment or `deploy/.env` (see `.env.example`). Compose passes `OPENAI_*` / `ALTDA_*` into the Go container via `environment:` (no required `env_file`).
+
+On the hackathon VM with a real key:
+
+```bash
+set -a; source /opt/hackathon/ai.env; set +a
+cd deploy && docker compose -p altda up --build -d
+```
+
+Leave `OPENAI_API_KEY` empty for stub mode (no unset needed).
 
 ## Check it
 

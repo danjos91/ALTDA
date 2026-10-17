@@ -33,6 +33,7 @@ public class HttpGoClient implements GoClient {
     public HttpGoClient(ObjectMapper objectMapper, GoClientProperties properties) {
         this.objectMapper = objectMapper;
         HttpClient httpClient = HttpClient.newBuilder()
+                .version(HttpClient.Version.HTTP_1_1)
                 .connectTimeout(Duration.ofMillis(properties.getConnectTimeoutMs()))
                 .build();
         String baseUrl = properties.getBaseUrl();

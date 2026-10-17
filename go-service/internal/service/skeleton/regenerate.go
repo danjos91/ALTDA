@@ -8,10 +8,18 @@ import (
 	"slices"
 	"sort"
 
+	"github.com/VladimirAzanza/ALTDA/go-service/internal/generr"
 	"github.com/VladimirAzanza/ALTDA/go-service/internal/program"
 	allocateservice "github.com/VladimirAzanza/ALTDA/go-service/internal/service/allocate"
 	"github.com/VladimirAzanza/ALTDA/go-service/internal/skeleton"
 )
+
+func llmContractError(err error) error {
+	if generr.IsContract(err) {
+		return err
+	}
+	return nil
+}
 
 func (s *service) Regenerate(ctx context.Context, p *program.Program, in RegenerateParams) (*RegenerateResult, error) {
 	root := &p.V
@@ -74,6 +82,13 @@ func (s *service) regenerateModules(ctx context.Context, p *program.Program, in 
 		Targets:  ids,
 	})
 	if err != nil {
+		// Preserve typed LLM contract errors; wrap everything else as before.
+		if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled) {
+			return nil, err
+		}
+		if coded := llmContractError(err); coded != nil {
+			return nil, coded
+		}
 		return nil, fmt.Errorf("%w: %v", ErrNoValidVariant, err)
 	}
 	if err := checkProposal(root, ids, proposed, outcomes); err != nil {
