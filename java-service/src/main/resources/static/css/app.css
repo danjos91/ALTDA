@@ -341,6 +341,17 @@ label.field textarea { min-height: 110px; resize: vertical; }
 .issue.warning { border-left-color: var(--warn); background: var(--warn-bg); }
 .issue.info { border-left-color: var(--info); background: var(--info-bg); }
 
+.issue-chips {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-top: 0.45rem;
+}
+
+.issue-chips .issue {
+  font-size: 0.85rem;
+}
+
 .history {
   max-height: 220px;
   overflow: auto;

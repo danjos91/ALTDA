@@ -105,15 +105,65 @@
     renderSidebar();
   }
 
+  function skeletonVariantList(s) {
+    const wrap = s?.skeletonVariants?.variants || s?.skeletonVariants || [];
+    return Array.isArray(wrap) ? wrap : [];
+  }
+
+  /** Pick recommendedIndex against the list that actually came back; else first. */
+  function resolveRecommendedKey(s, variants) {
+    if (!variants.length) return null;
+    const keys = new Set(variants.map((v) => v.key).filter(Boolean));
+    if (s.selectedVariantKey && keys.has(s.selectedVariantKey)) {
+      return s.selectedVariantKey;
+    }
+    const wrap = s.skeletonVariants;
+    let idx = typeof wrap?.recommendedIndex === "number" ? wrap.recommendedIndex : 0;
+    if (idx < 0 || idx >= variants.length) idx = 0;
+    return variants[idx].key ?? variants[0].key ?? null;
+  }
+
+  function syncSelectedVariant(s) {
+    const variants = skeletonVariantList(s);
+    if (!variants.length) {
+      state.selectedVariant = null;
+      return;
+    }
+    const keys = new Set(variants.map((v) => v.key).filter(Boolean));
+    if (state.selectedVariant && keys.has(state.selectedVariant)) return;
+    state.selectedVariant = resolveRecommendedKey(s, variants);
+  }
+
+  function issueSeverity(i) {
+    return String(i?.severity || "info").toLowerCase();
+  }
+
+  function issuesForNode(issues, nodeId) {
+    if (!issues || !nodeId) return [];
+    return issues.filter((i) => {
+      const related = i.relatedIds || [];
+      if (related.includes(nodeId)) return true;
+      const path = i.path || "";
+      return path.includes(nodeId);
+    });
+  }
+
+  function renderIssueChips(issues) {
+    if (!issues.length) return "";
+    return `<div class="issue-chips">${issues.map((i) => {
+      const sev = issueSeverity(i);
+      const cls = sev === "error" ? "error" : sev === "warning" ? "warning" : "info";
+      return `<div class="issue ${cls}"><strong>${escapeHtml(i.ruleId || "")}</strong> — ${escapeHtml(i.message || "")}</div>`;
+    }).join("")}</div>`;
+  }
+
   async function refreshCurrent() {
     if (!state.currentId) {
       state.snapshot = null;
       return;
     }
     state.snapshot = await api(`/programs/${state.currentId}`);
-    if (!state.selectedVariant && state.snapshot.selectedVariantKey) {
-      state.selectedVariant = state.snapshot.selectedVariantKey;
-    }
+    syncSelectedVariant(state.snapshot);
   }
 
   function startPolling() {
@@ -375,9 +425,10 @@
   /* Tab 2 */
   function renderSkeletonTab(s) {
     if (!s) return "";
-    const variantsWrap = s.skeletonVariants?.variants || s.skeletonVariants || [];
-    const variants = Array.isArray(variantsWrap) ? variantsWrap : [];
+    const variants = skeletonVariantList(s);
     const canPick = s.status === "skeleton_proposed" && !s.busy;
+    const n = variants.length;
+    const heading = n === 1 ? "Один вариант каркаса" : n === 2 ? "Два варианта каркаса" : `Варианты каркаса (${n})`;
 
     if (!variants.length) {
       return `
@@ -387,17 +438,20 @@
         ${historyPanel(s)}`;
     }
 
+    const recommendedKey = resolveRecommendedKey(s, variants);
+
     const cards = variants.map((v) => {
       const key = v.key;
       const score = VARIANT_SCORES[key] ?? 0.8;
       const selected = state.selectedVariant === key;
+      const recommended = key === recommendedKey;
       const modules = (v.modules || []).map((m) =>
         `<li><strong>${escapeHtml(m.id)}</strong> ${escapeHtml(m.title)} <span class="muted">(${(m.topics || []).length} тем)</span></li>`
       ).join("");
       return `
         <article class="variant-card ${selected ? "selected" : ""}" data-key="${escapeHtml(key)}">
           <div class="row" style="justify-content:space-between">
-            <strong>Вариант ${escapeHtml(key)}</strong>
+            <strong>Вариант ${escapeHtml(key)}${recommended ? " · рекомендован" : ""}</strong>
             <span class="score">оценка ${score.toFixed(2)}</span>
           </div>
           <p>${escapeHtml(v.rationale || "")}</p>
@@ -425,7 +479,7 @@
     return `
       <section class="panel stack">
         <div class="row" style="justify-content:space-between">
-          <h2>Три варианта каркаса</h2>
+          <h2>${heading}</h2>
           <span class="badge hours-badge">${escapeHtml(String(s.program?.header?.totalHours ?? s.program?.request?.params?.totalHours ?? "—"))} ч в заявке</span>
         </div>
         <div class="variants">${cards}</div>
@@ -512,6 +566,10 @@
       return `<section class="panel empty">Содержание появится после утверждения каркаса.</section>${historyPanel(s)}`;
     }
 
+    const allIssues = Array.isArray(s.issues) ? s.issues : [];
+    const warningIssues = allIssues.filter((i) => issueSeverity(i) === "warning");
+    const errorIssues = allIssues.filter((i) => issueSeverity(i) === "error");
+
     const modules = (s.program?.curriculum?.modules || []).map((m) => {
       const topics = (m.topics || []).map((t) => `
         <div class="list-block">
@@ -519,6 +577,7 @@
             <span>${escapeHtml(t.id)} · ${escapeHtml(t.title)} <span class="muted">${t.hours?.total ?? "?"} ч</span></span>
             <button type="button" class="btn btn-secondary btn-sm regen" data-id="${escapeHtml(t.id)}" ${s.busy ? "disabled" : ""}>Перегенерировать</button>
           </header>
+          ${renderIssueChips(issuesForNode(allIssues, t.id))}
         </div>`).join("");
       return `
         <div class="list-block">
@@ -526,6 +585,7 @@
             <span><strong>${escapeHtml(m.id)}</strong> ${escapeHtml(m.title)} · ${m.hours?.total ?? "?"} ч</span>
             <button type="button" class="btn btn-secondary btn-sm regen" data-id="${escapeHtml(m.id)}" ${s.busy ? "disabled" : ""}>Модуль заново</button>
           </header>
+          ${renderIssueChips(issuesForNode(allIssues, m.id).filter((i) => !(i.relatedIds || []).some((id) => String(id).startsWith("T"))))}
           ${topics}
         </div>`;
     }).join("") || `<p class="muted">Модулей нет</p>`;
@@ -535,6 +595,9 @@
     ).join("") || "<li class=\"muted\">Тестов пока нет</li>";
 
     const canApprove = (s.status === "content_ready" || s.status === "validated") && !s.busy;
+    const warnBanner = warningIssues.length
+      ? `<div class="banner info">Предупреждения (${warningIssues.length}): часть тем могла уйти в шаблон (например LLM_TOPIC_FALLBACK) — перегенерируйте при необходимости.</div>`
+      : "";
 
     return `
       <section class="panel stack">
@@ -542,6 +605,8 @@
           <h2>Модули и темы</h2>
           <span class="badge hours-badge">${s.program?.curriculum?.totals?.total ?? "—"}/${s.program?.header?.totalHours ?? "—"} ч</span>
         </div>
+        ${warnBanner}
+        ${errorIssues.length ? renderIssueChips(errorIssues) : ""}
         ${modules}
       </section>
       <section class="panel stack">
@@ -613,8 +678,10 @@
     const issues = s.issues || [];
     const bySev = { error: [], warning: [], info: [] };
     issues.forEach((i) => {
-      const sev = i.severity || "info";
-      (bySev[sev] || bySev.info).push(i);
+      const sev = issueSeverity(i);
+      if (sev === "error") bySev.error.push(i);
+      else if (sev === "warning") bySev.warning.push(i);
+      else bySev.info.push(i);
     });
 
     function block(title, list, cls) {
