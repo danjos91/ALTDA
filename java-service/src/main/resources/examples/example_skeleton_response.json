@@ -1,0 +1,211 @@
+{
+  "variants": [
+    {
+      "key": "A",
+      "rationale": "Линейно по предмету: от основ к практике и проекту.",
+      "pros": ["Понятная логика для начинающих", "Ровная нагрузка по неделям"],
+      "cons": ["Проект появляется ближе к концу"],
+      "goal": "Сформировать умение применять инструменты анализа данных на практике",
+      "competencies": [
+        {
+          "id": "C1",
+          "title": "Анализ данных",
+          "kind": "новая",
+          "activityType": null,
+          "profStandardLinks": [{ "registryRef": "ps.06.001", "laborFunctionCode": "A/01.3" }],
+          "knowledge": [{ "id": "C1.K1", "text": "Основные этапы пайплайна анализа данных" }],
+          "skills": [{ "id": "C1.U1", "text": "Готовить и визуализировать наборы данных" }],
+          "abilities": []
+        }
+      ],
+      "modules": [
+        {
+          "id": "M1",
+          "title": "Основы и подготовка данных",
+          "isIntro": true,
+          "weight": 0.45,
+          "topics": [
+            {
+              "id": "T1.1",
+              "title": "Пайплайн анализа",
+              "weight": 0.5,
+              "kinds": ["lecture", "practice"],
+              "practiceShareHint": 0.55,
+              "outcomeIds": ["C1.K1"],
+              "prerequisites": []
+            },
+            {
+              "id": "T1.2",
+              "title": "Очистка и подготовка",
+              "weight": 0.5,
+              "kinds": ["lecture", "practice"],
+              "practiceShareHint": 0.7,
+              "outcomeIds": ["C1.U1"],
+              "prerequisites": ["T1.1"]
+            }
+          ]
+        },
+        {
+          "id": "M2",
+          "title": "Практика и проект",
+          "isIntro": false,
+          "weight": 0.55,
+          "topics": [
+            {
+              "id": "T2.1",
+              "title": "Визуализация и отчёт",
+              "weight": 0.5,
+              "kinds": ["lecture", "practice"],
+              "practiceShareHint": 0.75,
+              "outcomeIds": ["C1.U1"],
+              "prerequisites": ["T1.2"]
+            },
+            {
+              "id": "T2.2",
+              "title": "Учебный проект",
+              "weight": 0.5,
+              "kinds": ["practice"],
+              "practiceShareHint": 1,
+              "outcomeIds": ["C1.K1", "C1.U1"],
+              "prerequisites": ["T2.1"]
+            }
+          ]
+        }
+      ],
+      "finalAttestation": {
+        "form": "защита проекта",
+        "description": "Защита мини-проекта по анализу данных",
+        "outcomeIds": ["C1.K1", "C1.U1"]
+      }
+    },
+    {
+      "key": "B",
+      "rationale": "Проектно-ориентированный: ранний кейс, затем углубление теории.",
+      "pros": ["Быстрая мотивация через кейс", "Сильная практика"],
+      "cons": ["Тяжелее для совсем новичков"],
+      "goal": "Научить решать прикладные задачи анализа данных через сквозной кейс",
+      "competencies": [
+        {
+          "id": "C1",
+          "title": "Прикладной анализ данных",
+          "kind": "новая",
+          "activityType": null,
+          "profStandardLinks": [{ "registryRef": "ps.06.001", "laborFunctionCode": "A/01.3" }],
+          "knowledge": [{ "id": "C1.K1", "text": "Типовые постановки задач анализа" }],
+          "skills": [{ "id": "C1.U1", "text": "Собирать решение кейса от данных до отчёта" }],
+          "abilities": []
+        }
+      ],
+      "modules": [
+        {
+          "id": "M1",
+          "title": "Кейс и данные",
+          "isIntro": true,
+          "weight": 0.4,
+          "topics": [
+            {
+              "id": "T1.1",
+              "title": "Постановка кейса",
+              "weight": 1,
+              "kinds": ["lecture", "practice"],
+              "practiceShareHint": 0.6,
+              "outcomeIds": ["C1.K1"],
+              "prerequisites": []
+            }
+          ]
+        },
+        {
+          "id": "M2",
+          "title": "Модели и отчёт",
+          "isIntro": false,
+          "weight": 0.6,
+          "topics": [
+            {
+              "id": "T2.1",
+              "title": "Инструменты анализа",
+              "weight": 0.5,
+              "kinds": ["lecture", "practice"],
+              "practiceShareHint": 0.7,
+              "outcomeIds": ["C1.U1"],
+              "prerequisites": ["T1.1"]
+            },
+            {
+              "id": "T2.2",
+              "title": "Сборка отчёта",
+              "weight": 0.5,
+              "kinds": ["practice"],
+              "practiceShareHint": 1,
+              "outcomeIds": ["C1.U1"],
+              "prerequisites": ["T2.1"]
+            }
+          ]
+        }
+      ],
+      "finalAttestation": {
+        "form": "защита проекта",
+        "description": "Презентация решения кейса",
+        "outcomeIds": ["C1.K1", "C1.U1"]
+      }
+    },
+    {
+      "key": "C",
+      "rationale": "Компактный интенсив: меньше теории, больше лабораторий.",
+      "pros": ["Короткий цикл обратной связи", "Удобно для 24–36 ч"],
+      "cons": ["Меньше глубины по теории"],
+      "goal": "Дать рабочий минимум инструментов анализа данных за короткий интенсив",
+      "competencies": [
+        {
+          "id": "C1",
+          "title": "Инструменты анализа данных",
+          "kind": "новая",
+          "activityType": null,
+          "profStandardLinks": [{ "registryRef": "ps.06.001", "laborFunctionCode": "A/01.3" }],
+          "knowledge": [{ "id": "C1.K1", "text": "Базовый стек инструментов" }],
+          "skills": [{ "id": "C1.U1", "text": "Выполнять типовые лабораторные задания" }],
+          "abilities": []
+        }
+      ],
+      "modules": [
+        {
+          "id": "M1",
+          "title": "Инструменты",
+          "isIntro": false,
+          "weight": 0.5,
+          "topics": [
+            {
+              "id": "T1.1",
+              "title": "Среда и библиотеки",
+              "weight": 1,
+              "kinds": ["lecture", "lab"],
+              "practiceShareHint": 0.8,
+              "outcomeIds": ["C1.K1"],
+              "prerequisites": []
+            }
+          ]
+        },
+        {
+          "id": "M2",
+          "title": "Лаборатории",
+          "isIntro": false,
+          "weight": 0.5,
+          "topics": [
+            {
+              "id": "T2.1",
+              "title": "Серия лабораторных",
+              "weight": 1,
+              "kinds": ["lab", "practice"],
+              "practiceShareHint": 0.9,
+              "outcomeIds": ["C1.U1"],
+              "prerequisites": ["T1.1"]
+            }
+          ]
+        }
+      ],
+      "finalAttestation": {
+        "form": "тестирование",
+        "description": "Итоговый практический тест",
+        "outcomeIds": ["C1.K1", "C1.U1"]
+      }
+    }
+  ]
+}

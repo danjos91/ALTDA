@@ -1,0 +1,6 @@
+# Use the real Go service: --spring.profiles.active=http
+# or override: -Daltda.go.client=http
+altda:
+  go:
+    client: http
+    base-url: http://localhost:8081

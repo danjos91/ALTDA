@@ -4,6 +4,30 @@
 
 Oct 15, 2026 · @vladimir azanza @danjos91 @alexaappelgants
 
+## Quick test (Java service)
+
+Java orchestration service lives in `java-service/` (port **8000**). Default `altda.go.client=mock` — no Go service required.
+
+```bash
+# start (mock Go client)
+cd java-service && ./run.sh
+# or: ./mvnw spring-boot:run
+# or: docker build -t altda-java . && docker run --rm -p 8000:8000 altda-java
+
+# smoke (in another terminal, from repo root)
+./scripts/smoke_test.sh http://localhost:8000
+```
+
+One-shot generate (auto-approval, for automated tests):
+
+```bash
+curl -sS -X POST http://localhost:8000/api/generate \
+  -H 'Content-Type: application/json' \
+  -d '{"request":"ДПП ПК Анализ данных на Python, 72 ч","answers":{"entryLevel":"Базовый"}}'
+```
+
+Health: `GET http://localhost:8000/health`. UI: open `http://localhost:8000/` (vanilla SPA, Russian). Unit tests: `cd java-service && ./mvnw test`. Manual UI checklist: [`java-service/README.md`](java-service/README.md). HTTP contract with Go: [`docs/API.md`](docs/API.md).
+
 ## Резюме и ключевые решения
 
 В команде два бэкендера, поэтому работа делится на два равноценных сервиса. Java отвечает за сценарий, предметную логику и документы; Go — за движок, который выполняет навыки через Cloud.ru, за проверку и верификацию источников. Так обязательные требования готовы к 7-му дню, а дни 8 и 9 остаются на дополнительные функции.

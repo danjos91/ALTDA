@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>ALTDA — генератор программ</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,500;7..72,650&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="/css/app.css"/>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">ALTDA<span>образовательные программы АЦР</span></div>
+      <button type="button" class="btn btn-ghost" id="btn-new">+ Новая заявка</button>
+      <ul class="program-list" id="program-list"></ul>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <h1 id="page-title">Заявка</h1>
+        <span class="badge" id="status-badge">нет программы</span>
+        <span class="badge hours-badge is-hidden" id="hours-badge">часы —</span>
+        <span class="working is-hidden" id="working"><span class="dot"></span> идёт генерация…</span>
+      </header>
+
+      <nav class="tabs" id="tabs" role="tablist">
+        <button type="button" class="tab active" data-tab="request">1 Заявка</button>
+        <button type="button" class="tab" data-tab="skeleton">2 Каркас</button>
+        <button type="button" class="tab" data-tab="content">3 Содержание</button>
+        <button type="button" class="tab" data-tab="report">4 Проверка и отчёт</button>
+        <button type="button" class="tab" data-tab="export">5 Выгрузка</button>
+      </nav>
+
+      <main class="content" id="view"></main>
+    </div>
+  </div>
+
+  <div class="toast-host" id="toasts" aria-live="polite"></div>
+  <script src="/js/app.js" defer></script>
+</body>
+</html>

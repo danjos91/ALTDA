@@ -1,0 +1,31 @@
+server:
+  port: 8000
+
+spring:
+  application:
+    name: altda-java-service
+  threads:
+    virtual:
+      enabled: true
+  web:
+    resources:
+      static-locations: classpath:/static/
+
+altda:
+  go:
+    # mock (default) | http
+    client: mock
+    base-url: http://localhost:8081
+    connect-timeout-ms: 5000
+    # Per-call read timeouts (Go LLM skills vs fast deterministic steps)
+    timeouts:
+      skeleton-ms: 180000      # /v1/skeleton/generate ~3 min
+      regenerate-ms: 180000    # /v1/skeleton/regenerate ~3 min
+      content-ms: 600000       # /v1/content ~10 min
+      validate-ms: 10000       # /v1/validate ~10 s
+      allocate-ms: 10000       # /v1/allocate (if present) ~10 s
+      parse-ms: 60000          # /v1/parse ~1 min
+
+logging:
+  level:
+    ru.acr.altda: INFO

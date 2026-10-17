@@ -1,0 +1,17 @@
+package ru.acr.altda.api.dto;
+
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
+
+import java.util.List;
+
+public record ClarificationAnswerRequest(
+        @NotEmpty @Valid List<Answer> answers
+) {
+    public record Answer(
+            @NotBlank String param,
+            @NotBlank String answer
+    ) {
+    }
+}
