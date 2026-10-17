@@ -6,9 +6,14 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/VladimirAzanza/ALTDA/go-service/internal/generr"
 	"github.com/VladimirAzanza/ALTDA/go-service/internal/program"
 	"github.com/VladimirAzanza/ALTDA/go-service/internal/service/validate"
 )
+
+func isLLMContract(err error) bool {
+	return generr.IsContract(err)
+}
 
 type service struct {
 	generator Generator
@@ -134,7 +139,10 @@ func (s *service) generateTopics(ctx context.Context, root *program.Root, refs [
 	wg.Wait()
 
 	if err := errors.Join(errs...); err != nil {
-		if errors.Is(err, context.DeadlineExceeded) {
+		if isLLMContract(err) {
+			return nil, err
+		}
+		if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled) {
 			return nil, fmt.Errorf("%w: %v", ErrGeneratorTimeout, err)
 		}
 		return nil, fmt.Errorf("%w: %v", ErrGeneratorFailed, err)

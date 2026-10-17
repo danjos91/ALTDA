@@ -6,6 +6,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/VladimirAzanza/ALTDA/go-service/internal/llm"
 	httpserver "github.com/VladimirAzanza/ALTDA/go-service/internal/server/http"
 	allocatehandler "github.com/VladimirAzanza/ALTDA/go-service/internal/server/http/handler/allocate"
 	contenthandler "github.com/VladimirAzanza/ALTDA/go-service/internal/server/http/handler/content"
@@ -36,21 +37,41 @@ func New() *App {
 
 func (app *App) Run(ctx context.Context) error {
 	allocatorConfig := allocator.DefaultConfig()
+	llmCfg := llm.LoadConfig()
 
 	parseService := parseservice.NewService()
 	allocateService := allocateservice.NewService(allocatorConfig)
 	validateService := validateservice.NewService()
-	skeletonService := skeletonservice.NewService(skeletonservice.NewTemplateDrafter(), skeletonservice.NewTemplateRegenerator(), allocatorConfig)
-	contentService := contentservice.NewService(contentservice.NewTemplateGenerator(), validateService, contentservice.DefaultConfig())
+
+	var drafter skeletonservice.Drafter = skeletonservice.NewTemplateDrafter()
+	var regenerator skeletonservice.Regenerator = skeletonservice.NewTemplateRegenerator()
+	var generator contentservice.Generator = contentservice.NewTemplateGenerator()
+
+	if !llmCfg.Stub {
+		client := llm.NewClient(llmCfg)
+		drafter = llm.NewDrafter(client)
+		regenerator = llm.NewRegenerator(client)
+		generator = llm.NewGenerator(client)
+	}
+
+	skeletonService := skeletonservice.NewService(drafter, regenerator, allocatorConfig)
+	contentCfg := contentservice.DefaultConfig()
+	contentCfg.MaxParallel = llmCfg.ContentConcurrency
+	contentService := contentservice.NewService(generator, validateService, contentCfg)
+
+	httpCfg := httpserver.NewConfig()
+	httpCfg.WriteTimeout = llmCfg.WriteTimeout
+	httpCfg.SkeletonDeadline = llmCfg.SkeletonDeadline
+	httpCfg.ContentDeadline = llmCfg.ContentDeadline
 
 	server := httpserver.NewServer(
-		httpserver.NewConfig(),
+		httpCfg,
 		healthhandler.NewHandler(),
 		parsehandler.NewHandler(parseService),
 		allocatehandler.NewHandler(allocateService),
 		validatehandler.NewHandler(validateService),
-		skeletonhandler.NewHandler(skeletonService),
-		contenthandler.NewHandler(contentService),
+		skeletonhandler.NewHandler(skeletonService, httpCfg.SkeletonDeadline),
+		contenthandler.NewHandler(contentService, httpCfg.ContentDeadline),
 	)
 
 	return server.Run(ctx)

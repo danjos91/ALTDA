@@ -1,0 +1,11 @@
+.env
+*.env.local
+.DS_Store
+go-service/altda-go
+go-service/bin/
+go-service/coverage.out
+java-service/target/
+**/__pycache__/
+*.pyc
+.idea/
+*.iml

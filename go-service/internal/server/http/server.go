@@ -29,16 +29,20 @@ func (s *Server) Run(ctx context.Context) error {
 		handler.Register(mux)
 	}
 
-	// No WriteTimeout: /v1/content may legitimately run for ~10 minutes.
 	srv := &http.Server{
 		Addr:              s.config.Address(),
 		Handler:           mux,
 		ReadHeaderTimeout: 10 * time.Second,
+		// Long enough for /v1/content (default 16m > Java content-ms 900s).
+		WriteTimeout: s.config.WriteTimeout,
 	}
 
 	errCh := make(chan error, 1)
 	go func() {
-		slog.InfoContext(ctx, "http server listening", slog.String("addr", srv.Addr))
+		slog.InfoContext(ctx, "http server listening",
+			slog.String("addr", srv.Addr),
+			slog.Duration("write_timeout", srv.WriteTimeout),
+		)
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			errCh <- err
 		}

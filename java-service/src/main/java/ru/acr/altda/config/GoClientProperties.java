@@ -43,9 +43,9 @@ public class GoClientProperties {
     }
 
     public static class Timeouts {
-        private long skeletonMs = 180_000;
-        private long regenerateMs = 180_000;
-        private long contentMs = 600_000;
+        private long skeletonMs = 300_000;
+        private long regenerateMs = 300_000;
+        private long contentMs = 900_000;
         private long validateMs = 10_000;
         private long allocateMs = 10_000;
         private long parseMs = 60_000;

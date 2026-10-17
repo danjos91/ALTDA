@@ -4,6 +4,11 @@
 #   ALTDA_GO_CLIENT=mock docker compose -p altda up --build     # Java uses its own built-in mock of Go
 #   docker compose -p altda down
 #
+# On the hackathon VM (keys in /opt/hackathon/ai.env):
+#   set -a; source /opt/hackathon/ai.env; set +a
+#   # unset ALTDA_STUB; then docker compose up --build
+#   # or replace env_file with /opt/hackathon/ai.env
+#
 # UI:          http://localhost:8000/
 # Java health: http://localhost:8000/health
 # Go health:   http://localhost:8081/v1/health
@@ -20,6 +25,20 @@ services:
       - "${GO_PORT:-8081}:8081"
     env_file:
       - ../go-service/.env
+    environment:
+      HOST: "0.0.0.0"
+      HTTP_PORT: "8081"
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-GigaChat/GigaChat-3-Pro}
+      ALTDA_STUB: ${ALTDA_STUB:-}
+      ALTDA_LLM_CONCURRENCY: ${ALTDA_LLM_CONCURRENCY:-2}
+      ALTDA_CONTENT_CONCURRENCY: ${ALTDA_CONTENT_CONCURRENCY:-2}
+      ALTDA_LLM_MAX_TOKENS: ${ALTDA_LLM_MAX_TOKENS:-4096}
+      ALTDA_LLM_CALL_TIMEOUT_SEC: ${ALTDA_LLM_CALL_TIMEOUT_SEC:-110}
+      ALTDA_SKELETON_DEADLINE_SEC: ${ALTDA_SKELETON_DEADLINE_SEC:-280}
+      ALTDA_CONTENT_DEADLINE_SEC: ${ALTDA_CONTENT_DEADLINE_SEC:-870}
+      ALTDA_HTTP_WRITE_TIMEOUT_MIN: ${ALTDA_HTTP_WRITE_TIMEOUT_MIN:-16}
     restart: unless-stopped
 
   # Java: web UI and orchestration. Programs live in memory: a restart loses them.

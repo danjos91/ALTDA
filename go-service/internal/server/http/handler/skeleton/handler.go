@@ -1,11 +1,14 @@
 package skeleton
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
+	"time"
 
 	"github.com/VladimirAzanza/ALTDA/go-service/internal/contract"
+	"github.com/VladimirAzanza/ALTDA/go-service/internal/generr"
 	"github.com/VladimirAzanza/ALTDA/go-service/internal/program"
 	httperror "github.com/VladimirAzanza/ALTDA/go-service/internal/server/http/error"
 	"github.com/VladimirAzanza/ALTDA/go-service/internal/server/http/response"
@@ -15,12 +18,19 @@ import (
 
 const maxBodyBytes = 32 << 20
 
+const defaultSkeletonDeadline = 280 * time.Second
+
 type Handler struct {
 	skeletonService skeletonservice.Service
+	deadline        time.Duration
 }
 
-func NewHandler(skeletonService skeletonservice.Service) *Handler {
-	return &Handler{skeletonService: skeletonService}
+func NewHandler(skeletonService skeletonservice.Service, deadline ...time.Duration) *Handler {
+	d := defaultSkeletonDeadline
+	if len(deadline) > 0 && deadline[0] > 0 {
+		d = deadline[0]
+	}
+	return &Handler{skeletonService: skeletonService, deadline: d}
 }
 
 func (h *Handler) Register(mux *http.ServeMux) {
@@ -55,7 +65,10 @@ func (h *Handler) Generate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	variants, err := h.skeletonService.Generate(r.Context(), req.Program)
+	ctx, cancel := context.WithTimeout(r.Context(), h.deadline)
+	defer cancel()
+
+	variants, err := h.skeletonService.Generate(ctx, req.Program)
 	if err != nil {
 		response.Error(w, r, toHTTPError(err))
 		return
@@ -76,7 +89,11 @@ func toHTTPError(err error) error {
 		return httperror.Wrap(httperror.BadRequest, err.Error(), err)
 	case errors.Is(err, skeletonservice.ErrNodeLocked):
 		return httperror.Wrap(httperror.NodeLocked, err.Error(), err)
-	case errors.Is(err, skeletonservice.ErrNoValidVariant):
+	case errors.Is(err, generr.ErrTimeout), errors.Is(err, context.DeadlineExceeded):
+		return httperror.Wrap(httperror.LLMTimeout, err.Error(), err)
+	case errors.Is(err, generr.ErrSchemaInvalid):
+		return httperror.Wrap(httperror.SchemaInvalid, err.Error(), err)
+	case errors.Is(err, generr.ErrUpstream), errors.Is(err, skeletonservice.ErrNoValidVariant):
 		return httperror.Wrap(httperror.LLMError, err.Error(), err)
 	default:
 		return err
