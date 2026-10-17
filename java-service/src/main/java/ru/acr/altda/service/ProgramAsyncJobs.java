@@ -49,11 +49,13 @@ public class ProgramAsyncJobs {
             JsonNode clarifications = programCopy.path("request").path("clarifications");
 
             GoClient.ParseResult parsed = goClient.parse(rawText, clarifications.deepCopy());
+            boolean[] stillMissing = new boolean[1];
             store.update(id, r -> {
                 support.applyParseResult(r, parsed);
                 boolean missing = parsed.missing() != null
                         && parsed.missing().isArray()
                         && !parsed.missing().isEmpty();
+                stillMissing[0] = missing;
                 ProgramStatus from = r.getStatus();
                 if (missing) {
                     ProgramStatusMachine.assertTransition(from, ProgramStatus.CLARIFYING);
@@ -67,7 +69,9 @@ public class ProgramAsyncJobs {
                 }
             });
 
-            if (store.snapshot(id).status() == ProgramStatus.CLARIFYING) {
+            // Stop only while data is still missing. Checking the status instead left the
+            // program busy forever when answers arrived while it was already "clarifying".
+            if (stillMissing[0]) {
                 return;
             }
 

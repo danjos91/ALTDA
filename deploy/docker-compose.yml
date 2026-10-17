@@ -1,0 +1,48 @@
+# ALTDA — Java service (UI + REST) and Go service (engine).
+#
+#   docker compose -p altda up --build                          # Java uses our Go service
+#   ALTDA_GO_CLIENT=mock docker compose -p altda up --build     # Java uses its own built-in mock of Go
+#   docker compose -p altda down
+#
+# UI:          http://localhost:8000/
+# Java health: http://localhost:8000/health
+# Go health:   http://localhost:8081/v1/health
+name: altda
+
+services:
+  # Go: parse, skeleton, content, validate, allocate (contract: docs/API.md).
+  # Its image has no shell, so the binary checks itself (HEALTHCHECK in its Dockerfile).
+  go:
+    build:
+      context: ../go-service
+    image: altda-go
+    ports:
+      - "${GO_PORT:-8081}:8081"
+    env_file:
+      - ../go-service/.env
+    restart: unless-stopped
+
+  # Java: web UI and orchestration. Programs live in memory: a restart loses them.
+  java:
+    build:
+      context: ../java-service
+    image: altda-java
+    depends_on:
+      go:
+        condition: service_healthy
+    ports:
+      - "${JAVA_PORT:-8000}:8000"
+    environment:
+      # http = our Go service | mock = Java's built-in stand-in
+      ALTDA_GO_CLIENT: ${ALTDA_GO_CLIENT:-http}
+      ALTDA_GO_BASE_URL: ${GO_BASE_URL:-http://go:8081}
+      JAVA_OPTS: ${JAVA_OPTS:-}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/8000 && printf 'GET /health HTTP/1.0\\r\\n\\r\\n' >&3 && grep -q '\"status\":\"ok\"' <&3"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 30s
+    restart: unless-stopped
