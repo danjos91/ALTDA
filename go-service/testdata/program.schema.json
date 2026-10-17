@@ -1,0 +1,884 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://acr.example/schemas/program.schema.json",
+  "title": "ADD (АЦР) education program — single source of truth",
+  "description": "The whole program package lives in this JSON. The .docx, the .pptx, the LMS tests and the validation report are GENERATED from it. IDs are stable: cross-references (outcomeIds, topicId, sourceIds) enable traceability and targeted regeneration. All hour values are multiples of 0.5 (academic hours). Conventions: camelCase keys; blocks required by pipeline stage are enforced in allOf (a program in status 'intake' only needs request).",
+  "type": "object",
+  "required": ["schemaVersion", "id", "status", "request"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "const": "1.1" },
+    "id": { "type": "string", "description": "Program UUID" },
+    "status": {
+      "description": "State of the agent state machine",
+      "enum": ["intake", "clarifying", "skeleton_proposed", "skeleton_approved", "content_generating", "content_ready", "validated", "exported"]
+    },
+    "programType": {
+      "description": "DPP_PK = ДПП повышения квалификации (273-ФЗ, приказ Минобрнауки № 499). DOOP_GENERAL = дополнительная общеобразовательная общеразвивающая программа (приказ Минпросвещения № 629). Known once the request is parsed and clarified.",
+      "enum": ["DPP_PK", "DOOP_GENERAL"]
+    },
+    "lineage": {
+      "description": "Extras: set when the program derives from another one (adaptation to another audience or volume, or update of an old program)",
+      "type": "object",
+      "required": ["parentProgramId", "operation"],
+      "additionalProperties": false,
+      "properties": {
+        "parentProgramId": { "type": "string" },
+        "parentVersion": { "type": "integer", "minimum": 1 },
+        "operation": { "enum": ["adapt_audience", "adapt_hours", "actualize"] },
+        "changesSummary": { "type": "array", "items": { "type": "string" }, "description": "What changed and why, for the methodologist" }
+      }
+    },
+
+    "request": {
+      "description": "The methodologist's request verbatim, plus the output of the parse and clarify steps",
+      "type": "object",
+      "required": ["rawText"],
+      "additionalProperties": false,
+      "properties": {
+        "rawText": { "type": "string" },
+        "attachments": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "name", "format"],
+            "additionalProperties": false,
+            "properties": {
+              "id": { "$ref": "#/$defs/referenceId" },
+              "name": { "type": "string" },
+              "format": { "enum": ["docx", "pdf", "text", "url"] },
+              "role": { "type": "string", "description": "What the methodologist said the file is for, e.g. 'reference program', 'customer requirements'" },
+              "extractedTextPath": { "type": "string", "description": "Path to the extracted text (the full text is not embedded in the JSON)" },
+              "chunkCount": { "type": "integer", "minimum": 0, "description": "Chunks indexed with Cloud.ru embeddings (pgvector) for RAG and copy detection" }
+            }
+          }
+        },
+        "params": { "$ref": "#/$defs/requestParams" },
+        "missing": { "type": "array", "items": { "type": "string" }, "description": "Required params still null. The skeleton step only starts when this is empty." },
+        "clarifications": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["param", "question"],
+            "additionalProperties": false,
+            "properties": {
+              "param": { "type": "string", "description": "Name of the request.params field this answers, e.g. 'entryLevel'" },
+              "question": { "type": "string" },
+              "answer": { "type": ["string", "null"] }
+            }
+          }
+        },
+        "gapsReport": { "type": "array", "items": { "type": "string" }, "description": "Mismatches between the customer's expectation and what the program can deliver, plus defaults the agent assumed" }
+      }
+    },
+
+    "header": {
+      "description": "General data of the program (the passport / title-page data)",
+      "type": "object",
+      "required": ["title", "itDirection", "totalHours", "studyForm", "audience", "issuedDocument"],
+      "additionalProperties": false,
+      "properties": {
+        "title": { "type": "string" },
+        "itDirection": { "type": "string", "description": "e.g. 'Анализ данных', 'Backend-разработка', 'Искусственный интеллект'" },
+        "totalHours": { "$ref": "#/$defs/hoursPositive", "description": "Requested volume. The sum of the plan MUST equal this number exactly." },
+        "studyForm": { "enum": ["очная", "очно-заочная", "заочная"] },
+        "distanceLearning": { "type": "boolean", "description": "Use of ДОТ / e-learning" },
+        "durationText": { "type": "string", "description": "e.g. '4 недели'" },
+        "audience": {
+          "type": "object",
+          "required": ["description", "entryLevel"],
+          "additionalProperties": false,
+          "properties": {
+            "description": { "type": "string" },
+            "entryLevel": { "type": "string" },
+            "entryRequirements": { "type": "string", "description": "DPP_PK: usually СПО/ВО or students" }
+          }
+        },
+        "issuedDocument": {
+          "type": "string",
+          "description": "DPP_PK: удостоверение о повышении квалификации. DOOP_GENERAL: as defined by the ADD template (сертификат/свидетельство)."
+        },
+        "approval": {
+          "description": "FIELDS TO BE FILLED IN BY A PERSON. The agent always leaves them null.",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "orderNumber": { "type": "null" },
+            "orderDate": { "type": "null" },
+            "approvedBy": { "type": "null" }
+          }
+        },
+        "authors": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["role"],
+            "additionalProperties": false,
+            "properties": {
+              "role": { "type": "string", "description": "Методист, Эксперт-практик, Руководитель" },
+              "fullName": { "type": "null", "description": "Always null: the ФИО is filled in by a person" }
+            }
+          }
+        }
+      }
+    },
+
+    "doop": {
+      "description": "Data specific to DOOP_GENERAL (order № 629). Forbidden for DPP_PK. Fields to be confirmed against the official ADD template.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "focus": { "type": "string", "description": "Направленность программы, e.g. 'техническая'" },
+        "ageRange": {
+          "type": "object",
+          "required": ["min"],
+          "additionalProperties": false,
+          "properties": { "min": { "type": "integer", "minimum": 0 }, "max": { "type": "integer", "minimum": 0 } }
+        }
+      }
+    },
+
+    "dpp": {
+      "description": "Data specific to DPP_PK (273-ФЗ, order № 499). Forbidden for DOOP_GENERAL. Profstandards come only from the verified local registry.",
+      "type": "object",
+      "required": ["profStandards"],
+      "additionalProperties": false,
+      "properties": {
+        "profStandards": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["registryRef", "standardCode", "standardTitle", "verified"],
+            "additionalProperties": false,
+            "properties": {
+              "registryRef": { "type": "string", "description": "ID of the record in registry.profStandards" },
+              "standardCode": { "type": "string", "pattern": "^\\d{2}\\.\\d{3}$" },
+              "standardTitle": { "type": "string" },
+              "approvalOrder": { "type": ["string", "null"], "description": "Приказ Минтруда that approves it, copied from the registry" },
+              "laborFunctions": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["code", "title"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "code": { "type": "string", "description": "Code of the трудовая функция, e.g. 'A/01.5'" },
+                    "title": { "type": "string" }
+                  }
+                }
+              },
+              "verified": { "type": "boolean", "description": "true only if the record comes from the verified local registry" }
+            }
+          }
+        }
+      }
+    },
+
+    "normativeBasis": {
+      "description": "IDs of sources with category='normative'",
+      "type": "array",
+      "items": { "$ref": "#/$defs/sourceId" }
+    },
+
+    "goal": {
+      "type": "object",
+      "required": ["text"],
+      "additionalProperties": false,
+      "properties": {
+        "text": { "type": "string" },
+        "tasks": { "type": "array", "items": { "type": "string" }, "description": "Задачи программы" },
+        "_meta": { "$ref": "#/$defs/nodeMeta" }
+      }
+    },
+
+    "competencies": {
+      "description": "Competency map. Each competency lists learning outcomes (knowledge K / skills U / abilities N) with their own IDs; topics, questions and criteria point to those IDs.",
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/competency" }
+    },
+
+    "curriculum": {
+      "description": "Учебный план + учебно-тематический план. Hours are computed by code (the allocator), NOT by the LLM.",
+      "type": "object",
+      "required": ["modules", "totals"],
+      "additionalProperties": false,
+      "properties": {
+        "modules": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/module" }
+        },
+        "totals": {
+          "description": "Computed by code over modules + finalAttestation. The validator recomputes and compares it.",
+          "$ref": "#/$defs/hours"
+        }
+      }
+    },
+
+    "finalAttestation": {
+      "description": "Итоговая аттестация. Its hours count in curriculum.totals.",
+      "type": "object",
+      "required": ["form", "description", "hours"],
+      "additionalProperties": false,
+      "properties": {
+        "form": { "enum": ["зачёт", "экзамен", "тестирование", "защита проекта", "защита итоговой работы", "демонстрационный экзамен"] },
+        "description": { "type": "string" },
+        "hours": { "$ref": "#/$defs/hours" },
+        "projectRequirements": { "type": "array", "items": { "type": "string" } },
+        "outcomeIds": { "type": "array", "items": { "$ref": "#/$defs/outcomeId" }, "description": "Outcomes checked by the final attestation (counts as one assessment tool for each)" },
+        "criteria": { "type": "array", "items": { "$ref": "#/$defs/criterion" } },
+        "testId": { "type": "string", "pattern": "^TEST\\d+$", "description": "Test used in the final attestation, if any" },
+        "_meta": { "$ref": "#/$defs/nodeMeta" }
+      }
+    },
+
+    "calendar": {
+      "description": "Календарный учебный график. Hours per session are filled by code from request.params.sessionHours / sessionsPerWeek.",
+      "type": "object",
+      "required": ["sessions"],
+      "additionalProperties": false,
+      "properties": {
+        "sessions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["number", "hours", "topicIds"],
+            "additionalProperties": false,
+            "properties": {
+              "number": { "type": "integer", "minimum": 1, "description": "Consecutive from 1" },
+              "week": { "type": "integer", "minimum": 1 },
+              "hours": { "$ref": "#/$defs/hoursPositive" },
+              "topicIds": { "type": "array", "items": { "$ref": "#/$defs/topicId" } },
+              "finalAttestation": { "type": "boolean", "description": "true if the session includes the final attestation" }
+            }
+          }
+        }
+      }
+    },
+
+    "lectures": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "topicId", "title", "plan"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "pattern": "^L\\d+(\\.\\d+)*$", "description": "L1, L2.3, ... unique" },
+          "topicId": { "$ref": "#/$defs/topicId" },
+          "sessionNumbers": { "type": "array", "items": { "type": "integer", "minimum": 1 }, "description": "Sessions of calendar.sessions where this lecture is delivered" },
+          "title": { "type": "string" },
+          "goal": { "type": "string" },
+          "plan": {
+            "type": "array",
+            "minItems": 1,
+            "description": "Lecture steps. The minutes of all lectures of a topic must add up to the topic's lecture hours × 45.",
+            "items": {
+              "type": "object",
+              "required": ["step", "minutes"],
+              "additionalProperties": false,
+              "properties": { "step": { "type": "string" }, "minutes": { "type": "integer", "minimum": 1 } }
+            }
+          },
+          "keyTerms": { "type": "array", "items": { "type": "string" } },
+          "outcomeIds": { "type": "array", "items": { "$ref": "#/$defs/outcomeId" } },
+          "slides": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["n", "title", "bullets"],
+              "additionalProperties": false,
+              "properties": {
+                "n": { "type": "integer", "minimum": 1 },
+                "layout": { "enum": ["title", "bullets", "two_columns", "image", "code", "summary"] },
+                "title": { "type": "string" },
+                "bullets": { "type": "array", "items": { "type": "string" } },
+                "code": { "type": ["string", "null"] },
+                "visualHint": { "type": ["string", "null"], "description": "Description of the suggested diagram/image (no links to third-party images)" },
+                "speakerNotes": { "type": ["string", "null"] }
+              }
+            }
+          },
+          "sourceIds": { "type": "array", "items": { "$ref": "#/$defs/sourceId" } },
+          "referenceIds": { "type": "array", "items": { "$ref": "#/$defs/referenceId" }, "description": "Methodologist references used as a basis (RAG)" },
+          "_meta": { "$ref": "#/$defs/nodeMeta" }
+        }
+      }
+    },
+
+    "assessment": {
+      "description": "Assessment materials: tests with answer keys and seminar tasks with criteria",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tests": { "type": "array", "items": { "$ref": "#/$defs/test" } },
+        "seminarTasks": { "type": "array", "items": { "$ref": "#/$defs/seminarTask" } }
+      }
+    },
+
+    "sources": {
+      "description": "Bibliography, regulations and resources. Every unverified reference is flagged.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "category", "citation", "verified"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "$ref": "#/$defs/sourceId" },
+          "category": { "enum": ["normative", "main", "additional", "internet", "software"] },
+          "citation": { "type": "string", "description": "Bibliographic description per ГОСТ Р 7.0.100-2018" },
+          "url": { "type": ["string", "null"] },
+          "isbn": { "type": ["string", "null"] },
+          "doi": { "type": ["string", "null"] },
+          "year": { "type": ["integer", "null"] },
+          "registryId": { "type": "string", "description": "ID of the record in the verified local registry, if it came from there" },
+          "topicIds": { "type": "array", "items": { "$ref": "#/$defs/topicId" } },
+          "verified": { "type": "boolean", "description": "Set by code only: true if found in the registry, or the URL answered 200 with a matching title, or the ISBN/DOI resolved. A model's confidence never makes a source verified." },
+          "verification": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "method": { "enum": ["registry", "isbn", "doi", "http", "user", "manual"] },
+              "confidence": { "enum": ["high", "medium", "low"], "description": "The fact-check step's confidence (informational)" },
+              "checkedAt": { "type": "string", "format": "date-time" },
+              "note": { "type": "string" }
+            }
+          },
+          "unverifiedMark": { "type": ["string", "null"], "description": "Text printed next to the source in the .docx when verified=false, e.g. '[не подтверждено]'" }
+        }
+      }
+    },
+
+    "tools": {
+      "description": "Tools and versions the program teaches. Used by the 'actualize' operation (detecting outdated ones).",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name"],
+        "additionalProperties": false,
+        "properties": {
+          "name": { "type": "string" },
+          "version": { "type": "string" },
+          "usedInTopics": { "type": "array", "items": { "$ref": "#/$defs/topicId" } },
+          "status": { "enum": ["current", "outdated", "unknown"] },
+          "latestVersion": { "type": "string", "description": "Latest version found during verification" },
+          "checkedAt": { "type": "string", "format": "date-time" },
+          "evidenceUrl": { "type": "string", "description": "Official version page where it was checked" }
+        }
+      }
+    },
+
+    "templateSections": {
+      "description": "Completeness of the ADD template. The list of 'key' values comes from each template's configuration (DPP_PK / DOOP_GENERAL), extracted from the official examples.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["key", "title", "status"],
+        "additionalProperties": false,
+        "properties": {
+          "key": { "type": "string" },
+          "title": { "type": "string" },
+          "status": { "enum": ["filled", "placeholder", "missing"] },
+          "jsonPath": { "type": "string", "description": "JSON Pointer to the data that fills the section" }
+        }
+      }
+    },
+
+    "approvals": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["stage", "approved", "at"],
+        "additionalProperties": false,
+        "properties": {
+          "stage": { "enum": ["skeleton", "content", "edit"] },
+          "approved": { "type": "boolean" },
+          "at": { "type": "string", "format": "date-time" },
+          "comment": { "type": "string" },
+          "changedPaths": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+
+    "validationReport": {
+      "type": "object",
+      "required": ["generatedAt", "summary", "checks"],
+      "additionalProperties": false,
+      "properties": {
+        "generatedAt": { "type": "string", "format": "date-time" },
+        "iterations": { "type": "integer", "minimum": 0, "description": "Number of validate → repair rounds performed" },
+        "summary": {
+          "type": "object",
+          "required": ["errors", "warnings", "passed"],
+          "additionalProperties": false,
+          "properties": {
+            "errors": { "type": "integer" },
+            "warnings": { "type": "integer" },
+            "passed": { "type": "integer" },
+            "unverifiedSources": { "type": "integer" }
+          }
+        },
+        "checks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["ruleId", "category", "severity", "passed", "message"],
+            "additionalProperties": false,
+            "properties": {
+              "ruleId": { "type": "string", "description": "e.g. HOURS_ROW_SUM, COVERAGE_OUTCOME_ASSESSED, REVIEW_*, COPY_*" },
+              "category": { "enum": ["hours", "coverage", "sources", "completeness", "consistency", "review", "copy"] },
+              "severity": { "enum": ["error", "warning", "info"] },
+              "passed": { "type": "boolean" },
+              "message": { "type": "string" },
+              "path": { "type": "string", "description": "JSON Pointer to the offending node" },
+              "relatedIds": { "type": "array", "items": { "type": "string" } },
+              "autoFixed": { "type": "boolean", "description": "true if the repair step fixed it" }
+            }
+          }
+        }
+      }
+    },
+
+    "generation": {
+      "description": "For the defense: token cost and time per step, plus the revision history",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "steps": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["step", "model", "promptTokens", "completionTokens", "durationMs"],
+            "additionalProperties": false,
+            "properties": {
+              "step": { "type": "string", "description": "Pipeline step: parse, clarify, skeleton, content, tests, tasks, lectures, sources, validate, repair, export (extras: actualize, adapt)" },
+              "model": { "type": "string" },
+              "promptTokens": { "type": "integer" },
+              "completionTokens": { "type": "integer" },
+              "durationMs": { "type": "integer" },
+              "retries": { "type": "integer" }
+            }
+          }
+        },
+        "embeddingTokens": { "type": "integer", "minimum": 0 },
+        "costRub": { "type": "number" },
+        "revisions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["at", "scope", "note"],
+            "additionalProperties": false,
+            "properties": {
+              "at": { "type": "string", "format": "date-time" },
+              "scope": { "type": "string", "description": "ID of the edited node, e.g. 'T2.3'" },
+              "note": { "type": "string" }
+            }
+          }
+        }
+      }
+    }
+  },
+
+  "allOf": [
+    {
+      "if": { "properties": { "status": { "enum": ["skeleton_proposed", "skeleton_approved", "content_generating", "content_ready", "validated", "exported"] } } },
+      "then": { "required": ["programType", "header", "goal", "competencies", "curriculum", "finalAttestation"] }
+    },
+    {
+      "if": { "properties": { "status": { "enum": ["content_ready", "validated", "exported"] } } },
+      "then": {
+        "required": ["calendar", "lectures", "assessment", "sources", "normativeBasis", "templateSections"],
+        "properties": {
+          "curriculum": {
+            "properties": {
+              "modules": { "items": { "properties": { "topics": { "items": { "required": ["activities"] } } } } }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "status": { "enum": ["validated", "exported"] } } },
+      "then": { "required": ["validationReport"] }
+    },
+    {
+      "if": { "required": ["programType"], "properties": { "programType": { "const": "DPP_PK" } } },
+      "then": {
+        "required": ["dpp"],
+        "properties": {
+          "doop": false,
+          "competencies": { "items": { "properties": { "profStandardLinks": { "minItems": 1 } } } }
+        }
+      }
+    },
+    {
+      "if": { "required": ["programType"], "properties": { "programType": { "const": "DOOP_GENERAL" } } },
+      "then": {
+        "properties": {
+          "dpp": false,
+          "competencies": { "items": { "properties": { "profStandardLinks": { "maxItems": 0 } } } }
+        }
+      }
+    }
+  ],
+
+  "$defs": {
+    "moduleId": { "type": "string", "pattern": "^M\\d+$" },
+    "topicId": { "type": "string", "pattern": "^T\\d+\\.\\d+$", "description": "T2.3 = topic 3 of module M2" },
+    "competencyId": { "type": "string", "pattern": "^C\\d+$" },
+    "outcomeId": { "type": "string", "pattern": "^C\\d+\\.(K|U|N)\\d+$", "description": "K = знать (knowledge), U = уметь (skills), N = владеть/навык (abilities)" },
+    "sourceId": { "type": "string", "pattern": "^SRC-\\d+$" },
+    "referenceId": { "type": "string", "pattern": "^REF-\\d+$" },
+
+    "hoursValue": { "type": "number", "minimum": 0, "multipleOf": 0.5 },
+    "hoursPositive": { "type": "number", "exclusiveMinimum": 0, "multipleOf": 0.5 },
+
+    "hours": {
+      "description": "Academic hours in steps of 0.5. contact = lecture + practice + lab. total = contact + selfStudy + assessment.",
+      "type": "object",
+      "required": ["lecture", "practice", "lab", "selfStudy", "assessment", "contact", "total"],
+      "additionalProperties": false,
+      "properties": {
+        "lecture": { "$ref": "#/$defs/hoursValue" },
+        "practice": { "$ref": "#/$defs/hoursValue", "description": "Практические занятия / семинары" },
+        "lab": { "$ref": "#/$defs/hoursValue" },
+        "selfStudy": { "$ref": "#/$defs/hoursValue" },
+        "assessment": { "$ref": "#/$defs/hoursValue", "description": "Промежуточная/итоговая аттестация" },
+        "contact": { "$ref": "#/$defs/hoursValue" },
+        "total": { "$ref": "#/$defs/hoursValue" }
+      }
+    },
+
+    "requestParams": {
+      "description": "Output of the parse step. A field the request does not state and that cannot be inferred is null and listed in request.missing.",
+      "type": "object",
+      "required": ["programType", "title", "domain", "totalHours", "audience", "entryLevel", "studyForm", "distanceTech", "durationWeeks", "sessionHours", "sessionsPerWeek", "minPracticeShare", "finalAttestationForm", "isInternship", "deliverablesRequested", "constraints"],
+      "additionalProperties": false,
+      "properties": {
+        "programType": { "enum": ["DPP_PK", "DOOP_GENERAL", null] },
+        "title": { "type": ["string", "null"] },
+        "domain": { "type": ["string", "null"], "description": "IT area, e.g. 'Робототехника'" },
+        "totalHours": { "type": ["number", "null"], "exclusiveMinimum": 0, "multipleOf": 0.5 },
+        "audience": { "type": ["string", "null"] },
+        "entryLevel": { "type": ["string", "null"] },
+        "studyForm": { "enum": ["очная", "очно-заочная", "заочная", null] },
+        "distanceTech": { "type": ["boolean", "null"] },
+        "durationWeeks": { "type": ["integer", "null"], "minimum": 1 },
+        "sessionHours": { "type": ["number", "null"], "exclusiveMinimum": 0, "multipleOf": 0.5 },
+        "sessionsPerWeek": { "type": ["number", "null"], "exclusiveMinimum": 0 },
+        "minPracticeShare": { "type": ["number", "null"], "minimum": 0, "maximum": 1, "description": "Minimum share of practice: (practice + lab) / total hours. Only set when the request states it explicitly." },
+        "finalAttestationForm": { "type": ["string", "null"] },
+        "isInternship": { "type": "boolean", "description": "true only if the request explicitly says 'стажировка'" },
+        "deliverablesRequested": { "type": "array", "items": { "type": "string" } },
+        "constraints": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+
+    "knowledgeOutcome": {
+      "type": "object",
+      "required": ["id", "text"],
+      "additionalProperties": false,
+      "properties": { "id": { "type": "string", "pattern": "^C\\d+\\.K\\d+$" }, "text": { "type": "string" } }
+    },
+    "skillOutcome": {
+      "type": "object",
+      "required": ["id", "text"],
+      "additionalProperties": false,
+      "properties": { "id": { "type": "string", "pattern": "^C\\d+\\.U\\d+$" }, "text": { "type": "string" } }
+    },
+    "abilityOutcome": {
+      "type": "object",
+      "required": ["id", "text"],
+      "additionalProperties": false,
+      "properties": { "id": { "type": "string", "pattern": "^C\\d+\\.N\\d+$" }, "text": { "type": "string" } }
+    },
+
+    "profStandardLinkDraft": {
+      "description": "What the model returns: only registry IDs. Code fills in the rest from the registry.",
+      "type": "object",
+      "required": ["registryRef", "laborFunctionCode"],
+      "additionalProperties": false,
+      "properties": {
+        "registryRef": { "type": "string" },
+        "laborFunctionCode": { "type": "string" }
+      }
+    },
+    "profStandardLink": {
+      "type": "object",
+      "required": ["registryRef", "laborFunctionCode", "standardCode", "laborFunctionTitle", "verified"],
+      "additionalProperties": false,
+      "properties": {
+        "registryRef": { "type": "string" },
+        "laborFunctionCode": { "type": "string" },
+        "standardCode": { "type": "string", "pattern": "^\\d{2}\\.\\d{3}$" },
+        "laborFunctionTitle": { "type": "string" },
+        "verified": { "type": "boolean" }
+      }
+    },
+
+    "competency": {
+      "type": "object",
+      "required": ["id", "title", "profStandardLinks", "knowledge", "skills", "abilities"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/competencyId" },
+        "title": { "type": "string" },
+        "kind": { "enum": ["новая", "совершенствуемая"], "description": "DPP_PK: компетенция новая or совершенствуемая" },
+        "activityType": { "type": ["string", "null"], "description": "Вид деятельности" },
+        "profStandardLinks": { "type": "array", "items": { "$ref": "#/$defs/profStandardLink" }, "description": "DPP_PK: at least one. DOOP_GENERAL: empty." },
+        "knowledge": { "type": "array", "items": { "$ref": "#/$defs/knowledgeOutcome" } },
+        "skills": { "type": "array", "items": { "$ref": "#/$defs/skillOutcome" } },
+        "abilities": { "type": "array", "items": { "$ref": "#/$defs/abilityOutcome" } },
+        "_meta": { "$ref": "#/$defs/nodeMeta" }
+      },
+      "anyOf": [
+        { "properties": { "knowledge": { "minItems": 1 } } },
+        { "properties": { "skills": { "minItems": 1 } } },
+        { "properties": { "abilities": { "minItems": 1 } } }
+      ]
+    },
+
+    "competencyDraft": {
+      "description": "Competency as returned by the skeleton step (profstandard links carry registry IDs only)",
+      "type": "object",
+      "required": ["id", "title", "profStandardLinks", "knowledge", "skills", "abilities"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/competencyId" },
+        "title": { "type": "string" },
+        "kind": { "enum": ["новая", "совершенствуемая"] },
+        "activityType": { "type": ["string", "null"] },
+        "profStandardLinks": { "type": "array", "items": { "$ref": "#/$defs/profStandardLinkDraft" } },
+        "knowledge": { "type": "array", "items": { "$ref": "#/$defs/knowledgeOutcome" } },
+        "skills": { "type": "array", "items": { "$ref": "#/$defs/skillOutcome" } },
+        "abilities": { "type": "array", "items": { "$ref": "#/$defs/abilityOutcome" } }
+      },
+      "anyOf": [
+        { "properties": { "knowledge": { "minItems": 1 } } },
+        { "properties": { "skills": { "minItems": 1 } } },
+        { "properties": { "abilities": { "minItems": 1 } } }
+      ]
+    },
+
+    "activity": {
+      "description": "One entry per work kind with non-zero hours in the topic's hours. Hours are copied from the topic, never invented. 'control' maps to hours.assessment.",
+      "type": "object",
+      "required": ["kind", "hours", "content"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": { "enum": ["lecture", "practice", "lab", "selfStudy", "control"] },
+        "hours": { "$ref": "#/$defs/hoursPositive" },
+        "content": { "type": "string", "description": "Содержание: what is studied / what the learners do" },
+        "delivery": { "enum": ["onsite", "distance_sync", "distance_async"] }
+      }
+    },
+
+    "module": {
+      "type": "object",
+      "required": ["id", "title", "hours", "topics", "assessmentForm"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/moduleId" },
+        "title": { "type": "string" },
+        "isIntro": { "type": "boolean" },
+        "weight": { "type": "number", "exclusiveMinimum": 0, "maximum": 1, "description": "Relative weight proposed by the LLM. The allocator turns it into hours." },
+        "annotation": { "type": "string", "description": "Аннотация for the module's рабочая программа" },
+        "hours": { "$ref": "#/$defs/hours" },
+        "assessmentForm": { "enum": ["зачёт", "тестирование", "практическая работа", "нет"] },
+        "topics": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["id", "title", "hours", "outcomeIds"],
+            "additionalProperties": false,
+            "properties": {
+              "id": { "$ref": "#/$defs/topicId" },
+              "title": { "type": "string" },
+              "weight": { "type": "number", "exclusiveMinimum": 0, "maximum": 1, "description": "Share inside the module" },
+              "prerequisites": { "type": "array", "items": { "$ref": "#/$defs/topicId" }, "description": "Topics that must come earlier" },
+              "hours": { "$ref": "#/$defs/hours" },
+              "outcomeIds": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/outcomeId" } },
+              "activities": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/activity" }, "description": "Filled by the content step; required from status content_ready" },
+              "doubts": { "type": "array", "items": { "type": "string" }, "description": "Points the model was unsure about (e.g. tool versions), shown to the methodologist" },
+              "referenceIds": { "type": "array", "items": { "$ref": "#/$defs/referenceId" } },
+              "_meta": { "$ref": "#/$defs/nodeMeta" }
+            }
+          }
+        },
+        "_meta": { "$ref": "#/$defs/nodeMeta" }
+      }
+    },
+
+    "criterion": {
+      "type": "object",
+      "required": ["text", "maxPoints"],
+      "additionalProperties": false,
+      "properties": {
+        "text": { "type": "string", "description": "Observable and checkable ('the program runs', not 'good understanding')" },
+        "maxPoints": { "type": "integer", "minimum": 1 },
+        "levels": {
+          "type": "array",
+          "description": "Per-level descriptors, e.g. range '0', '1', '2–3'",
+          "items": {
+            "type": "object",
+            "required": ["range", "description"],
+            "additionalProperties": false,
+            "properties": { "range": { "type": "string" }, "description": { "type": "string" } }
+          }
+        }
+      }
+    },
+
+    "seminarTask": {
+      "type": "object",
+      "required": ["id", "topicId", "title", "description", "deliverable", "durationHours", "outcomeIds", "criteria", "maxScore"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "pattern": "^ST\\d+$" },
+        "topicId": { "$ref": "#/$defs/topicId" },
+        "title": { "type": "string" },
+        "format": { "enum": ["индивидуально", "в парах", "в группах"] },
+        "description": { "type": "string" },
+        "deliverable": { "type": "string" },
+        "durationHours": { "$ref": "#/$defs/hoursPositive", "description": "All tasks of a topic together must fit in the topic's practice + lab hours" },
+        "outcomeIds": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/outcomeId" }, "description": "Each task checks at least one skill (U) or ability (N)" },
+        "criteria": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/criterion" } },
+        "maxScore": { "type": "integer", "minimum": 1, "description": "Sum of criteria.maxPoints" },
+        "passThreshold": { "type": "integer", "minimum": 0 },
+        "_meta": { "$ref": "#/$defs/nodeMeta" }
+      }
+    },
+
+    "test": {
+      "type": "object",
+      "required": ["id", "title", "purpose", "questions"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "pattern": "^TEST\\d+$" },
+        "title": { "type": "string" },
+        "purpose": { "enum": ["current", "final"] },
+        "moduleId": { "type": ["string", "null"], "pattern": "^M\\d+$" },
+        "passThreshold": { "type": "number", "minimum": 0, "maximum": 1 },
+        "questions": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/question" } },
+        "_meta": { "$ref": "#/$defs/nodeMeta" }
+      }
+    },
+
+    "question": {
+      "description": "'correct' lists option ids for single/multiple/truefalse; for 'short' it lists the accepted answers.",
+      "type": "object",
+      "required": ["id", "type", "text", "correct", "outcomeIds", "difficulty"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "pattern": "^Q[A-Za-z0-9-]*\\d+$", "description": "Unique inside its test" },
+        "type": { "enum": ["single", "multiple", "truefalse", "short"] },
+        "text": { "type": "string" },
+        "options": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "text"],
+            "additionalProperties": false,
+            "properties": { "id": { "type": "string" }, "text": { "type": "string" }, "feedback": { "type": "string" } }
+          }
+        },
+        "correct": { "type": "array", "minItems": 1, "items": { "type": "string" } },
+        "explanation": { "type": "string" },
+        "outcomeIds": { "type": "array", "minItems": 1, "maxItems": 2, "items": { "$ref": "#/$defs/outcomeId" } },
+        "topicIds": { "type": "array", "items": { "$ref": "#/$defs/topicId" } },
+        "difficulty": { "enum": ["easy", "medium", "hard"] },
+        "points": { "type": "integer", "minimum": 1 }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "type": { "enum": ["single", "multiple", "truefalse"] } } },
+          "then": { "required": ["options"], "properties": { "options": { "minItems": 2 } } }
+        }
+      ]
+    },
+
+    "skeletonDraft": {
+      "description": "One variant of the skeleton step's response. It lives outside the program: code turns it into competencies + curriculum + finalAttestation and runs the hour allocator. Weights are fractions, never hours.",
+      "type": "object",
+      "required": ["key", "rationale", "goal", "competencies", "modules", "finalAttestation"],
+      "additionalProperties": false,
+      "properties": {
+        "key": { "enum": ["A", "B", "C"] },
+        "rationale": { "type": "string" },
+        "pros": { "type": "array", "items": { "type": "string" } },
+        "cons": { "type": "array", "items": { "type": "string" } },
+        "goal": { "type": "string" },
+        "competencies": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/competencyDraft" } },
+        "modules": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["id", "title", "isIntro", "weight", "topics"],
+            "additionalProperties": false,
+            "properties": {
+              "id": { "$ref": "#/$defs/moduleId" },
+              "title": { "type": "string" },
+              "isIntro": { "type": "boolean" },
+              "weight": { "type": "number", "exclusiveMinimum": 0, "maximum": 1, "description": "Share of all modules; the weights add up to 1 (final attestation excluded)" },
+              "topics": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "object",
+                  "required": ["id", "title", "weight", "kinds", "outcomeIds"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": { "$ref": "#/$defs/topicId" },
+                    "title": { "type": "string" },
+                    "weight": { "type": "number", "exclusiveMinimum": 0, "maximum": 1, "description": "Share inside the module; adds up to 1" },
+                    "kinds": { "type": "array", "minItems": 1, "items": { "enum": ["lecture", "practice", "lab", "selfStudy"] }, "description": "Internship programs use only selfStudy" },
+                    "practiceShareHint": { "type": "number", "minimum": 0, "maximum": 1 },
+                    "outcomeIds": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/outcomeId" } },
+                    "prerequisites": { "type": "array", "items": { "$ref": "#/$defs/topicId" } }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "finalAttestation": {
+          "type": "object",
+          "required": ["form", "description"],
+          "additionalProperties": false,
+          "properties": {
+            "form": { "type": "string" },
+            "description": { "type": "string" },
+            "outcomeIds": { "type": "array", "items": { "$ref": "#/$defs/outcomeId" } }
+          }
+        }
+      }
+    },
+
+    "skeletonResponse": {
+      "description": "Whole response of the skeleton step: up to three variants. Validate it with a $ref to this definition.",
+      "type": "object",
+      "required": ["variants"],
+      "additionalProperties": false,
+      "properties": {
+        "variants": { "type": "array", "minItems": 1, "maxItems": 3, "items": { "$ref": "#/$defs/skeletonDraft" } }
+      }
+    },
+
+    "nodeMeta": {
+      "description": "Provenance of each node: allows regenerating only what is affected and summing the cost",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "version": { "type": "integer", "minimum": 1 },
+        "skill": { "type": "string", "description": "Skill that generated the node, e.g. 'lectures'" },
+        "model": { "type": "string" },
+        "locked": { "type": "boolean", "description": "true = edited/approved by a person; the agent does not overwrite it" },
+        "dependsOn": { "type": "array", "items": { "type": "string" }, "description": "IDs it depends on (for cascade invalidation)" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      }
+    }
+  }
+}

@@ -131,6 +131,22 @@ Health: `GET http://localhost:8000/health`. UI: open `http://localhost:8000/` (v
 
 Поле `lineage` и список `changes_summary` показывают методисту, из какой программы получена новая и что изменилось.
 
+## Go service (`go-service/`)
+
+HTTP skills engine on **:8081** (contract: `docs/API.md`). Java calls it when `ALTDA_GO_CLIENT=http`.
+
+```bash
+# Stub (no key) + Java http client
+cd go-service && ./run.sh &
+cd java-service && ALTDA_GO_CLIENT=http ALTDA_GO_BASE_URL=http://localhost:8081 ./run.sh
+./scripts/smoke_test.sh http://localhost:8000
+
+# Or both via Docker (empty OPENAI_API_KEY ⇒ stub)
+cp .env.example .env && docker compose up --build
+```
+
+See `go-service/README.md` for endpoints, LLM env vars, and tests.
+
 ## Стек и распределение ролей
 
 Каждый сеньор владеет целым сервисом одинакового веса. Python и PM отвечают за качество содержания и оценку, где нужно немного кода.
