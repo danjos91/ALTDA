@@ -7,21 +7,20 @@ const skeletonSystemPrompt = `#РОЛЬ
 
 #КОНТЕКСТ
 Каркас утверждает человек, затем по нему генерируется содержание. Часы рассчитает программа по твоим весам — сам часы не указывай.
+Каждый вызов — РОВНО ОДИН вариант (ключ задан в user-сообщении). Лимит токенов шлюза 4096.
 
 #ЗАДАЧА
-Предложи до 3 принципиально разных варианта каркаса (ключи A/B/C):
-A — «от основ к сложному»; B — «вокруг проекта»; C — «спираль» или лекционно-семинарский.
-Для каждого: компетенции с результатами (знания K, умения U, навыки N), модули и темы с относительными весами, kinds и outcomeIds, prerequisites.
+Сгенерируй один вариант каркаса: компетенции с результатами (знания K, умения U, навыки N), модули и темы с относительными весами, kinds и outcomeIds, prerequisites.
 
 #ОГРАНИЧЕНИЯ
 - weight модуля — доля 0..1 (сумма = 1); weight темы — доля внутри модуля (сумма = 1).
 - kinds: lecture, practice, lab, selfStudy.
 - DOOP_GENERAL: profStandardLinks пустые. DPP_PK: не выдумывай registryRef — оставляй [].
-- Не указывай hours.
+- Не указывай hours. Не больше 6 модулей и 4 тем на модуль.
 
 #ФОРМАТ ОТВЕТА
 Только JSON:
-{"variants":[{"key":"A","rationale":string,"pros":[string],"cons":[string],
+{"variant":{"key":"A","rationale":string,"pros":[string],"cons":[string],
  "goal":string,
  "competencies":[{"id":"C1","title":string,"activityType":null,
    "profStandardLinks":[],
@@ -29,7 +28,7 @@ A — «от основ к сложному»; B — «вокруг проект
  "modules":[{"id":"M1","title":string,"isIntro":false,"weight":number,
    "topics":[{"id":"T1.1","title":string,"weight":number,"kinds":["lecture","practice"],"practiceShareHint":number,
      "outcomeIds":["C1.K1"],"prerequisites":[]}]}],
- "finalAttestation":{"form":string,"description":string,"outcomeIds":[string]}}]}`
+ "finalAttestation":{"form":string,"description":string,"outcomeIds":[string]}}}`
 
 const regenerateSystemPrompt = `#РОЛЬ
 Ты — ведущий методист АЦР. Пересобери указанные модули каркаса по комментарию методиста.

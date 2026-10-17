@@ -33,7 +33,7 @@ type Config struct {
 
 // LoadConfig reads OPENAI_* / ALTDA_* from the environment.
 func LoadConfig() Config {
-	stubFlag := strings.EqualFold(env.String("ALTDA_STUB", ""), "true")
+	stubFlag := env.Bool("ALTDA_STUB", false)
 	apiKey := strings.TrimSpace(env.String("OPENAI_API_KEY", ""))
 	stub := stubFlag || apiKey == ""
 

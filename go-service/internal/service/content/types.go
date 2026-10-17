@@ -27,6 +27,12 @@ type Generator interface {
 	Placeholder() bool
 }
 
+// WarningSource is implemented by generators that soft-fail topics (e.g. LLM
+// fallback to stub) and want those warnings merged into the content response.
+type WarningSource interface {
+	ConsumeWarnings() []validate.Check
+}
+
 type TopicInput struct {
 	ProgramTitle string
 	Domain       string

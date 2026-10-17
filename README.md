@@ -16,17 +16,17 @@ Oct 15, 2026 · Хакатон, кейс №1 «Агенты и EdTech»
 ### Запуск на ВМ хакатона
 
 ```bash
-# Ключи шлюза (OPENAI_API_KEY, OPENAI_BASE_URL):
+# С реальным шлюзом (ключи уже задают OPENAI_API_KEY и OPENAI_BASE_URL):
 set -a; source /opt/hackathon/ai.env; set +a
-# для stub без шлюза: export ALTDA_STUB=true
+cd ~/project/deploy && docker compose -p altda up --build -d
 
-cd ~/project/deploy   # или корень репозитория → deploy/
-docker compose -p altda up --build -d
+# Stub без шлюза: не задавайте OPENAI_API_KEY (пустой ключ → stub сам).
+# ALTDA_STUB=true нужен только чтобы принудительно оставить stub при наличии ключа.
 
 # без Docker: go-service (make run) + java-service (./run.sh с ALTDA_GO_CLIENT=http)
 ```
 
-Примеры env: [`deploy/.env.example`](deploy/.env.example), [`go-service/.env.example`](go-service/.env.example). В compose в Go пробрасываются `OPENAI_BASE_URL` / `OPENAI_API_KEY` / `OPENAI_MODEL` / `ALTDA_STUB` / `ALTDA_LLM_CONCURRENCY` (ключи в git не коммитятся).
+Примеры env: [`deploy/.env.example`](deploy/.env.example), [`go-service/.env.example`](go-service/.env.example). Compose передаёт в Go `OPENAI_*` / `ALTDA_*` через `environment:` (отдельный `env_file` не обязателен; ключи в git не коммитятся).
 
 ### Лимиты шлюза (обработаны в Go)
 
@@ -45,7 +45,7 @@ Stub: нет ключа или `ALTDA_STUB=true` → шаблонные `Drafter
 | Путь | Назначение |
 | --- | --- |
 | `java-service/` | Оркестратор, REST, UI, .docx; `HttpGoClient` (HTTP/1.1) → Go |
-| `go-service/` | `/v1/*`: parse, skeleton, content, validate, allocate; LLM за интерфейсами |
+| `go-service/` | `/v1/*`: parse (детерминированный), skeleton/content (LLM или stub), validate, allocate |
 | `prompts/PROMPTS.md` | Промпты пайплайна |
 | `deploy/` | `docker-compose.yml` (Java 8000, Go 8081, healthchecks, `restart: unless-stopped`) |
 | `scripts/smoke_test.sh` | Сквозной smoke через Java |
@@ -83,7 +83,7 @@ curl -s localhost:8081/v1/health     # Go
 | **Go, валидатор** | Готов: все правила из `tools/validate_reference.py`, кроме `COPY_OVERLAP`; на примере из схемы даёт то же, что эталон (одно предупреждение) |
 | **Java, сценарий и интерфейс** | Готов: заявка → уточнения → каркас → утверждение → содержание → проверка → выгрузка .docx; блокировка узлов; контроль версий |
 | **LLM (OpenAI-совместимый / GigaChat)** | Готов за интерфейсами; stub при отсутствии ключа; лимиты шлюза — см. таблицу выше |
-| **Разбор запроса** | По правилам (не LLM); каркас и содержание — LLM или шаблоны |
+| **Разбор запроса** | Детерминированный `parseservice` (не LLM); каркас и содержание — LLM или шаблоны |
 | RAG по референсам, контроль заимствований | Не начато |
 | Выгрузка .pptx и в LMS (GIFT) | Не начато |
 | Каталог нормативной базы и профстандартов | Не начат |
@@ -268,7 +268,7 @@ curl -s localhost:8081/v1/health     # Go
 Осталось:
 
 1. Устранение известных расхождений интеграции из раздела выше.
-2. LLM-разбор запроса (`parse`); учёт токенов в `generation`.
+2. Опциональный LLM-разбор запроса (сейчас `parse` детерминированный); учёт токенов в `generation`.
 3. Каталог нормативной базы и профстандартов; официальный список разделов шаблона АЦР.
 4. Редактор часов в интерфейсе, выгрузка .pptx и GIFT (по возможности).
 

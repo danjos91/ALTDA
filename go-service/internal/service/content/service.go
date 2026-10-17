@@ -65,7 +65,11 @@ func (s *service) Generate(ctx context.Context, p *program.Program, nodeIDs []st
 	if err != nil {
 		return nil, err
 	}
-	return report.Issues(), nil
+	issues := report.Issues()
+	if ws, ok := s.generator.(WarningSource); ok {
+		issues = append(ws.ConsumeWarnings(), issues...)
+	}
+	return issues, nil
 }
 
 func requireStructure(root *program.Root) error {

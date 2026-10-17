@@ -121,7 +121,9 @@ func (c *Client) complete(ctx context.Context, req openai.ChatCompletionRequest)
 		c.release()
 
 		if err != nil {
-			if isTimeout(err) || errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled) {
+			// Context cancellation/deadline first; then retryable HTTP (429/5xx
+			// including 504 Gateway Timeout) before string-matching "timeout".
+			if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled) {
 				return "", fmt.Errorf("%w: %v", ErrTimeout, err)
 			}
 			if isRetryable(err) && attempt < 2 {
@@ -131,6 +133,9 @@ func (c *Client) complete(ctx context.Context, req openai.ChatCompletionRequest)
 				}
 				backoff *= 2
 				continue
+			}
+			if isTimeout(err) {
+				return "", fmt.Errorf("%w: %v", ErrTimeout, err)
 			}
 			return "", fmt.Errorf("%w: %v", ErrUpstream, err)
 		}

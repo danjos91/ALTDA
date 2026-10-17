@@ -4,21 +4,40 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
+	"sync"
+	"time"
 
 	"github.com/VladimirAzanza/ALTDA/go-service/internal/program"
 	"github.com/VladimirAzanza/ALTDA/go-service/internal/service/content"
+	"github.com/VladimirAzanza/ALTDA/go-service/internal/service/validate"
 )
 
 // Generator is an LLM-backed content.Generator (one topic per call).
+// On LLM failure/timeout after retries it falls back to the stub generator
+// for that topic and records a warning for the methodologist.
 type Generator struct {
 	client *Client
+	stub   content.Generator
+
+	mu       sync.Mutex
+	warnings []validate.Check
 }
 
 func NewGenerator(client *Client) content.Generator {
-	return &Generator{client: client}
+	return &Generator{client: client, stub: content.NewTemplateGenerator()}
 }
 
 func (g *Generator) Placeholder() bool { return false }
+
+// ConsumeWarnings returns and clears soft-fail warnings from topic fallbacks.
+func (g *Generator) ConsumeWarnings() []validate.Check {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	out := g.warnings
+	g.warnings = nil
+	return out
+}
 
 type topicResponse struct {
 	Activities []program.Activity `json:"activities"`
@@ -48,6 +67,31 @@ type topicTask struct {
 }
 
 func (g *Generator) Topic(ctx context.Context, in content.TopicInput) (content.TopicContent, error) {
+	start := time.Now()
+	out, err := g.topicLLM(ctx, in)
+	elapsed := time.Since(start)
+	if err == nil {
+		slog.InfoContext(ctx, "topic llm ok",
+			slog.String("topicId", in.Topic.ID),
+			slog.Duration("duration", elapsed),
+		)
+		return out, nil
+	}
+
+	slog.WarnContext(ctx, "topic llm failed; using stub",
+		slog.String("topicId", in.Topic.ID),
+		slog.Duration("duration", elapsed),
+		slog.Any("error", err),
+	)
+	stubOut, stubErr := g.stub.Topic(ctx, in)
+	if stubErr != nil {
+		return content.TopicContent{}, stubErr
+	}
+	g.addFallbackWarning(in.Topic.ID, err)
+	return stubOut, nil
+}
+
+func (g *Generator) topicLLM(ctx context.Context, in content.TopicInput) (content.TopicContent, error) {
 	body, err := json.Marshal(in)
 	if err != nil {
 		return content.TopicContent{}, fmt.Errorf("%w: marshal topic: %v", ErrUpstream, err)
@@ -89,6 +133,20 @@ func (g *Generator) Topic(ctx context.Context, in content.TopicInput) (content.T
 		}
 	}
 	return out, nil
+}
+
+func (g *Generator) addFallbackWarning(topicID string, cause error) {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	g.warnings = append(g.warnings, validate.Check{
+		RuleID:     "LLM_TOPIC_FALLBACK",
+		Category:   validate.CategoryConsistency,
+		Severity:   validate.SeverityWarning,
+		Passed:     false,
+		Message:    fmt.Sprintf("Тема %s: LLM недоступен (%v); подставлен шаблонный текст — перегенерируйте тему", topicID, cause),
+		Path:       "/curriculum/modules/*/topics/" + topicID,
+		RelatedIDs: []string{topicID},
+	})
 }
 
 func validateTopicResponse(in content.TopicInput, raw topicResponse) error {

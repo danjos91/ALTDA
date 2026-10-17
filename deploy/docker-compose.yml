@@ -6,8 +6,8 @@
 #
 # On the hackathon VM (keys in /opt/hackathon/ai.env):
 #   set -a; source /opt/hackathon/ai.env; set +a
-#   # unset ALTDA_STUB; then docker compose up --build
-#   # or replace env_file with /opt/hackathon/ai.env
+#   cd deploy && docker compose -p altda up --build -d
+# Empty OPENAI_API_KEY → stub mode automatically (no need to unset anything).
 #
 # UI:          http://localhost:8000/
 # Java health: http://localhost:8000/health
@@ -23,8 +23,6 @@ services:
     image: altda-go
     ports:
       - "${GO_PORT:-8081}:8081"
-    env_file:
-      - ../go-service/.env
     environment:
       HOST: "0.0.0.0"
       HTTP_PORT: "8081"
