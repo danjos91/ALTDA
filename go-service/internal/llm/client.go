@@ -66,6 +66,14 @@ func NewClient(cfg Config) *Client {
 // Bad JSON is retried once; a second failure returns ErrSchemaInvalid.
 // 429/5xx use exponential backoff (up to 3 attempts), honouring ctx.
 func (c *Client) ChatJSON(ctx context.Context, system, user string, dest any) error {
+	return c.ChatJSONTimeout(ctx, system, user, dest, c.callTO)
+}
+
+// ChatJSONTimeout is ChatJSON with an explicit per-call timeout.
+func (c *Client) ChatJSONTimeout(ctx context.Context, system, user string, dest any, callTO time.Duration) error {
+	if callTO < 1 {
+		callTO = c.callTO
+	}
 	req := openai.ChatCompletionRequest{
 		Model: c.model,
 		Messages: []openai.ChatCompletionMessage{
@@ -82,7 +90,7 @@ func (c *Client) ChatJSON(ctx context.Context, system, user string, dest any) er
 		if err := ctx.Err(); err != nil {
 			return fmt.Errorf("%w: %v", ErrTimeout, err)
 		}
-		text, err := c.complete(ctx, req)
+		text, err := c.complete(ctx, req, callTO)
 		if err != nil {
 			return err
 		}
@@ -103,7 +111,7 @@ func (c *Client) ChatJSON(ctx context.Context, system, user string, dest any) er
 	return lastSchema
 }
 
-func (c *Client) complete(ctx context.Context, req openai.ChatCompletionRequest) (string, error) {
+func (c *Client) complete(ctx context.Context, req openai.ChatCompletionRequest, callTO time.Duration) (string, error) {
 	var lastErr error
 	backoff := 500 * time.Millisecond
 	for attempt := 0; attempt < 3; attempt++ {
@@ -115,7 +123,7 @@ func (c *Client) complete(ctx context.Context, req openai.ChatCompletionRequest)
 			return "", err
 		}
 
-		callCtx, cancel := context.WithTimeout(ctx, c.callTO)
+		callCtx, cancel := context.WithTimeout(ctx, callTO)
 		resp, err := c.api.CreateChatCompletion(callCtx, req)
 		cancel()
 		c.release()

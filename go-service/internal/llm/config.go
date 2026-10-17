@@ -21,8 +21,14 @@ type Config struct {
 	// ContentConcurrency is per-topic parallelism for content (≤ Concurrency).
 	ContentConcurrency int
 
-	CallTimeout time.Duration
+	CallTimeout time.Duration // default content/general LLM call (110s)
 	MaxTokens   int
+
+	// SkeletonCallTimeout is the per-variant LLM call cap (default 90s).
+	SkeletonCallTimeout time.Duration
+	// SkeletonSoftMargin is how far before the endpoint deadline we stop
+	// waiting for stragglers and return finished variants (default 15s).
+	SkeletonSoftMargin time.Duration
 
 	// Endpoint deadlines (slightly below Java read timeouts).
 	SkeletonDeadline time.Duration
@@ -60,9 +66,18 @@ func LoadConfig() Config {
 		callSec = 110
 	}
 
+	skelCallSec := env.Int("ALTDA_SKELETON_CALL_TIMEOUT_SEC", 90)
+	if skelCallSec < 1 {
+		skelCallSec = 90
+	}
+
 	skelSec := env.Int("ALTDA_SKELETON_DEADLINE_SEC", 280)
 	if skelSec < 1 {
 		skelSec = 280
+	}
+	softMarginSec := env.Int("ALTDA_SKELETON_SOFT_MARGIN_SEC", 15)
+	if softMarginSec < 1 {
+		softMarginSec = 15
 	}
 	contentSec := env.Int("ALTDA_CONTENT_DEADLINE_SEC", 870)
 	if contentSec < 1 {
@@ -81,11 +96,13 @@ func LoadConfig() Config {
 		Model:              env.String("OPENAI_MODEL", "GigaChat/GigaChat-3-Pro"),
 		Concurrency:        concurrency,
 		ContentConcurrency: contentConc,
-		CallTimeout:        time.Duration(callSec) * time.Second,
-		MaxTokens:          maxTokens,
-		SkeletonDeadline:   time.Duration(skelSec) * time.Second,
-		ContentDeadline:    time.Duration(contentSec) * time.Second,
-		WriteTimeout:       time.Duration(writeMin) * time.Minute,
+		CallTimeout:         time.Duration(callSec) * time.Second,
+		MaxTokens:           maxTokens,
+		SkeletonCallTimeout: time.Duration(skelCallSec) * time.Second,
+		SkeletonSoftMargin:  time.Duration(softMarginSec) * time.Second,
+		SkeletonDeadline:    time.Duration(skelSec) * time.Second,
+		ContentDeadline:     time.Duration(contentSec) * time.Second,
+		WriteTimeout:        time.Duration(writeMin) * time.Minute,
 	}
 
 	if cfg.Stub {

@@ -49,7 +49,7 @@ func (app *App) Run(ctx context.Context) error {
 
 	if !llmCfg.Stub {
 		client := llm.NewClient(llmCfg)
-		drafter = llm.NewDrafter(client)
+		drafter = llm.NewDrafter(client, llmCfg)
 		regenerator = llm.NewRegenerator(client)
 		generator = llm.NewGenerator(client)
 	}

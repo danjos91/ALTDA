@@ -33,7 +33,7 @@ cd ~/project/deploy && docker compose -p altda up --build -d
 | Параметр | Значение |
 | --- | --- |
 | Одновременные вызовы LLM | процессный семафор, default **2** (`ALTDA_LLM_CONCURRENCY`); content-параллелизм ≤ него (`ALTDA_CONTENT_CONCURRENCY`) |
-| Таймаут одного вызова | **110 с**; `max_tokens` default **4096** (≥1000); **без streaming** |
+| Таймаут одного вызова | content **110 с**, skeleton-вариант **90 с**; `max_tokens` **4096**; **без streaming**; soft-deadline → отдать готовые варианты, 504 только если ни одного |
 | 429 / 5xx | экспоненциальный backoff, до **3** попыток, с уважением к `ctx` |
 | Ошибки | `llm_timeout` → **504**, `llm_error` → **502**, `schema_invalid` → **422** (не 500 internal) |
 | Дедлайны endpoint | skeleton/regenerate **280 с** (Java 300 с); content **870 с** (Java 900 с); HTTP `WriteTimeout` **16 мин** |
